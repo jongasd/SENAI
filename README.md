@@ -34,7 +34,7 @@ Aqui estão as principais tecnologias que utilizo nos exercícios e projetos do 
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
 </p>
 
-(https://media.giphy.com/media/1gR1osX2m0lA5cV4gS/giphy.gif)](https://user-images.githubusercontent.com/74038190/225813708-98b745f2-7d22-48cf-9150-083f1b00d6c9.gif)
+![Banner Programador mário](https://media.giphy.com/media/1gR1osX2m0lA5cV4gS/giphy.gif)](https://user-images.githubusercontent.com/74038190/225813708-98b745f2-7d22-48cf-9150-083f1b00d6c9.gif)
 
 ---
 
