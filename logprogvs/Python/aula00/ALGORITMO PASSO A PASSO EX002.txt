@@ -1,0 +1,5 @@
+2- Crie um algoritmo que receba 3 numeros e informe qual o maior entre eles.
+
+1- criar 3 variaveis para os numeros
+2- verificar qual é o maior
+3- mostrar na tela

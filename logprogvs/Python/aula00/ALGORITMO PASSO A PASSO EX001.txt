@@ -1,0 +1,7 @@
+1. Crie um algoritmo que leia um numero diferente de zero e diga se este número é positivo ou negativo
+
+1- defina um valor numero
+2- criar uma variavel num
+3- faça a validação se o numero é igual a 0
+4- valide se o número é positivo ou negativo
+5- escreva na tela o numero e fale se ele é positivo ou negativo
