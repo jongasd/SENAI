@@ -1,9 +1,9 @@
 # 📚 SENAI - Curso de Análise e Desenvolvimento de Sistemas (ADS)
 ![Banner de tecnologia e aprendizado](https://i.ibb.co/5vW2kYQ/tech-anime-banner.gif)
-
 Bem-vindo ao meu repositório **SENAI**! Aqui eu compartilho os exercícios e projetos que desenvolvo durante o curso de **Análise e Desenvolvimento de Sistemas (ADS)** no SENAI. Este é um espaço para documentar minha jornada de aprendizado, explorar novas tecnologias e aplicar os conceitos que estudo. 🚀
 
 ---
+
 
 ## 🎯 Sobre o Curso
 
