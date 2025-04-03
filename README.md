@@ -1,7 +1,6 @@
 # 📚 SENAI - Curso de Análise e Desenvolvimento de Sistemas (ADS)
 
-![image](https://github.com/user-attachments/assets/a1d98163-8794-486f-babe-9aaf1486e4d6)
-
+![image-removebg-preview](https://github.com/user-attachments/assets/052da6ed-98cf-49c6-aba0-5bdde7c7e001)
 
 ![Banner de tecnologia e aprendizado](https://i.ibb.co/5vW2kYQ/tech-anime-banner.gif)
 
