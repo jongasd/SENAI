@@ -1,12 +1,10 @@
 # 📚 SENAI - Curso de Análise e Desenvolvimento de Sistemas (ADS)
-
-![image-removebg-preview](https://github.com/user-attachments/assets/052da6ed-98cf-49c6-aba0-5bdde7c7e001)
-
 ![Banner de tecnologia e aprendizado](https://i.ibb.co/5vW2kYQ/tech-anime-banner.gif)
-
 Bem-vindo ao meu repositório **SENAI**! Aqui eu compartilho os exercícios e projetos que desenvolvo durante o curso de **Análise e Desenvolvimento de Sistemas (ADS)** no SENAI. Este é um espaço para documentar minha jornada de aprendizado, explorar novas tecnologias e aplicar os conceitos que estudo. 🚀
 
 ---
+<img src="https://github.com/Anmol-Baranwal/Cool-GIFs-For-GitHub/assets/74038190/c288471c-be67-4fbb-af44-1c63ee9ed280" />
+
 
 ## 🎯 Sobre o Curso
 
@@ -36,9 +34,6 @@ Aqui estão as principais tecnologias que utilizo nos exercícios e projetos do 
   <img src="https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white" alt="Dart">
   <img src="https://img.shields.io/badge/SQL-4479A1?style=for-the-badge&logo=postgresql&logoColor=white" alt="SQL">
 </p>
-
----
-<img src="https://user-images.githubusercontent.com/74038190/235224431-e8c8c12e-6826-47f1-89fb-2ddad83b3abf.gif" width="300">
 
 ---
 
