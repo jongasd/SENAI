@@ -1,5 +1,5 @@
 // Exercício 01
-// class produto {
+// class Produto {
 //     constructor(nome, preco, quantidade) {
 //         this.nome = nome;
 //         this.preco = preco;
@@ -9,11 +9,11 @@
 //         return this.preco * this.quantidade;
 //     }
 // }
-// const batata = new produto("batata", 10.99, 10)
+// const batata = new Produto("batata", 10.99, 10)
 // console.log(batata.valorEstoque())
 //############################################################################################
 // Exercício 02
-// class filme {
+// class Filme {
 //     constructor(titulo, ano, diretor) {
 //         this.titulo = titulo;
 //         this.ano = ano;
@@ -23,11 +23,11 @@
 //         return "O filme" + this.titulo + "foi lançado em " + this.ano + "e dirigido por" + this.diretor
 //     }
 // }
-// const matrix = new filme("Matrix", 1999, "Wachowski")
+// const matrix = new Filme("Matrix", 1999, "Wachowski")
 // matrix.filmeInfo()
 //############################################################################################
 // Exercício 03
-// class aluno{
+// class Aluno{
 //     constructor(nome, nota1, nota2) {
 //         this.nome = nome;
 //         this.nota1 = nota1;
@@ -45,11 +45,11 @@
 //           }
 //       }
 //     }
-// const aluno1 = new aluno("Jonas", 10, 9)
+// const aluno1 = new Aluno("Jonas", 10, 9)
 // console.log(aluno1.aprovacao())
 //############################################################################################
 // Exercício 04
-// class retangulo {
+// class Retangulo {
 //     constructor(base, altura) {
 //         this.base = base;
 //         this.altura = altura;
@@ -63,30 +63,30 @@
 //         return res
 //     }
 // }
-// const retangulo1 = new retangulo(10, 90)
+// const retangulo1 = new Retangulo(10, 90)
 // console.log(retangulo1.area())
 //############################################################################################
 // Exercício 05
-// class carro {
-//     constructor(marca, modelo, combustivel){
-//         this.marca = marca;
-//         this.modelo = modelo;
-//         this.combustivel = combustivel;
-//     }
-//     abastecer(litro){
-//         this.combustivel = this.combustivel + litro;
-//         return this.combustivel 
-//     }
-//     dirigir(km){
-//         let res = {}
-//         if (km /10 > this.combustivel) {
-//         res = "Precisa Abastecer";
-//         return res
-//     }
-//         this.combustivel -= km/10
-//          res = "Km rodados:" + km;
-//         return res;
-//     }
-// }
-// const c1 = new carro("Bugatti", "Chiron", 10 )
-// console.log(c1.dirigir(101))
+class Carro {
+    constructor(marca, modelo, combustivel){
+        this.marca = marca;
+        this.modelo = modelo;
+        this.combustivel = combustivel;
+    }
+    abastecer(litro){
+        this.combustivel = this.combustivel + litro;
+        return this.combustivel 
+    }
+    dirigir(km){
+        let res = {}
+        if (km /10 > this.combustivel) {
+        res = "Precisa Abastecer";
+        return res
+    }
+        this.combustivel -= km/10
+         res = "Km rodados:" + km;
+        return res;
+    }
+}
+const c1 = new Carro("Bugatti", "Chiron", 10 )
+console.log(c1.dirigir(101))
