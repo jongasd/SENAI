@@ -1,5 +1,5 @@
 // Exercício 01
-// class Produto {
+// class produto {
 //     constructor(nome, preco, quantidade) {
 //         this.nome = nome;
 //         this.preco = preco;
@@ -9,6 +9,8 @@
 //         return this.preco * this.quantidade;
 //     }
 // }
+// const batata = new produto("batata", 10.99, 10)
+// console.log(batata.valorEstoque())
 //############################################################################################
 // Exercício 02
 // class filme {
@@ -35,14 +37,16 @@
 //         let media = (nota1 + nota2) / 2
 //         return media
 //     }
-//      aprovacao(media){
-//          if(media >= 7){
-//               return "Aprovado"
+//     aprovacao(media){
+//          if(media <= 7){
+//               return "Reprovado"
 //          } else {
-//              return "Reprovado"
+//              return "Aprovado"
 //           }
 //       }
 //     }
+// const aluno1 = new aluno("Jonas", 10, 9)
+// console.log(aluno1.aprovacao())
 //############################################################################################
 // Exercício 04
 // class retangulo {
@@ -51,14 +55,16 @@
 //         this.altura = altura;
 //     }
 //     area(){
-//         let res = base * altura
+//         let res = this.base * this.altura
 //         return res
 //     }
 //     perimetro(){
-//         let res = (base * 2) + (altura * 2)
+//         let res = (this.base * 2) + (this.altura * 2)
 //         return res
 //     }
 // }
+// const retangulo1 = new retangulo(10, 90)
+// console.log(retangulo1.area())
 //############################################################################################
 // Exercício 05
 // class carro {
@@ -68,18 +74,19 @@
 //         this.combustivel = combustivel;
 //     }
 //     abastecer(litro){
-//         this.litro = litro;
-//         combustivel = combustivel + litro;
-//         return combustivel 
+//         this.combustivel = this.combustivel + litro;
+//         return this.combustivel 
 //     }
 //     dirigir(km){
-//         this.km = km;
-//         km = 10 * litro;
-//         let res = "Km rodados:" + km;
-//             if (km < litro) {
-//             res = "Precisa Abastecer";
+//         let res = {}
+//         if (km /10 > this.combustivel) {
+//         res = "Precisa Abastecer";
+//         return res
 //     }
-//     return res;
+//         this.combustivel -= km/10
+//          res = "Km rodados:" + km;
+//         return res;
 //     }
 // }
 // const c1 = new carro("Bugatti", "Chiron", 10 )
+// console.log(c1.dirigir(101))
