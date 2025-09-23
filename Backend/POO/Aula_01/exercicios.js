@@ -34,10 +34,11 @@
 //         this.nota2 = nota2;
 //     }
 //     calcularMedia(){
-//         let media = (nota1 + nota2) / 2
+//         let media = (this.nota1 + this.nota2) / 2
 //         return media
 //     }
-//     aprovacao(media){
+//     aprovacao(){
+//         let media = this.calcularMedia()
 //          if(media <= 7){
 //               return "Reprovado"
 //          } else {
@@ -45,7 +46,7 @@
 //           }
 //       }
 //     }
-// const aluno1 = new Aluno("Jonas", 10, 9)
+// const aluno1 = new Aluno("Jonas", 10, 5)
 // console.log(aluno1.aprovacao())
 //############################################################################################
 // Exercício 04
@@ -67,26 +68,6 @@
 // console.log(retangulo1.area())
 //############################################################################################
 // Exercício 05
-class Carro {
-    constructor(marca, modelo, combustivel){
-        this.marca = marca;
-        this.modelo = modelo;
-        this.combustivel = combustivel;
-    }
-    abastecer(litro){
-        this.combustivel = this.combustivel + litro;
-        return this.combustivel 
-    }
-    dirigir(km){
-        let res = {}
-        if (km /10 > this.combustivel) {
-        res = "Precisa Abastecer";
-        return res
-    }
-        this.combustivel -= km/10
-         res = "Km rodados:" + km;
-        return res;
-    }
-}
-const c1 = new Carro("Bugatti", "Chiron", 10 )
-console.log(c1.dirigir(101))
+
+
+
