@@ -35,14 +35,6 @@ body {
   line-height: 1.6;
   font-size: 16px;
 }
-.merriweather {
-  font-family: "Merriweather", serif;
-  font-optical-sizing: auto;
-  font-weight: <weight>;
-  font-style: normal;
-  font-variation-settings: "wdth" 100;
-}
-
 
 .skip-link {
   position: absolute;
