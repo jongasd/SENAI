@@ -43,12 +43,6 @@ body {
   font-variation-settings: "wdth" 100;
 }
 
-.montserrat {
-  font-family: "Montserrat", sans-serif;
-  font-optical-sizing: auto;
-  font-weight: <weight>;
-  font-style: normal;
-}
 
 .skip-link {
   position: absolute;
@@ -57,17 +51,6 @@ body {
   width: 1px;
   height: 1px;
   overflow: hidden;
-}
-.skip-link:focus {
-  left: 10px;
-  top: 10px;
-  width: auto;
-  height: auto;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: var(--white);
-  color: var(--black);
-  z-index: 9999;
 }
 
 

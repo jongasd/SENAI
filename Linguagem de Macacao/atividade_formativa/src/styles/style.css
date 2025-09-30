@@ -17,13 +17,6 @@ body {
   color: var(--fg);
   line-height: 1.6;
 }
-.merriweather {
-  font-family: "Merriweather", serif;
-  font-optical-sizing: auto;
-  font-weight: <weight>;
-  font-style: normal;
-  font-variation-settings: "wdth" 100;
-}
 .container {
   max-width: var(--max-width);
   margin: 0 auto;
