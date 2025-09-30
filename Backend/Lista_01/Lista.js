@@ -161,8 +161,8 @@
 // #####################################################################
 
 // Exercicio 14
-async function carregado(){
-    setTimeout(() => {console.log("Carregado, Conectado na Rede")}, 3000)
-}
-carregado()
-console.log("Carregando")
+// async function carregado(){
+//     setTimeout(() => {console.log("Carregado, Conectado na Rede")}, 3000)
+// }
+// carregado()
+// console.log("Carregando")
