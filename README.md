@@ -35,6 +35,7 @@ Aqui estão as principais tecnologias que utilizo nos exercícios e projetos do 
   <img src="https://img.shields.io/badge/SQL-4479A1?style=for-the-badge&logo=postgresql&logoColor=white" alt="SQL">
 </p>
 
+
 ---
 
 ## 📂 Estrutura do Repositório
@@ -69,3 +70,9 @@ Quer discutir sobre o curso ou colaborar em algum projeto? Me encontre no Linked
 <p align="center">
   <i>"Aprendendo, codificando e construindo o futuro com o SENAI!"</i>
 </p>
+
+---
+
+## 📚Projetos Realizados
+
+- Atividade Formativa -> Biografia do NS (Abrir Primeiro o Arquivo Login.html para Melhor Experiência).
