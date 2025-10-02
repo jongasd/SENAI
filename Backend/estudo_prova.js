@@ -89,7 +89,7 @@ executarCallback(function () {
 //como funciona essa função: A função de callback recebe uma função como parâmetro, e ela executa essa função quando a função de callback é chamada.
 //lembrar: callback significa chamar devolta, então sempre que vc chamar uma função de callback, ela vai executar a funcao que foi criada dentro dela.
 
-//------------------------------------------------------------
+//-----------------------------------------------------------
 
 //Classes
 
