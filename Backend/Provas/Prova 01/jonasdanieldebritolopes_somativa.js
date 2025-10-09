@@ -84,7 +84,7 @@
 // }
 // class Software extends Ativo{
 //     calcularDepreciacao(licencaMensal){
-//         return this.valorInicial/licencaMensal
+//         return licencaMensal
 //     }
 //     fichaTecnica(){
 //         return `O Ativo ${this.nome}, tem como valor Inicial: ${this.valorInicial} e foi Aquisitido em ${this.dataAquisicao}`
