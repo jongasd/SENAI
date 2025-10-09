@@ -107,34 +107,34 @@
 
 // Exercicio 05
 
-// class Tarefa{
-//     constructor(descricao, responsavel){
-//         this.descricao = descricao
-//         this.responsavel = responsavel
-//     }
-//     calcularTempoEstimado(){
-//     }
-// }
+class Tarefa{
+    constructor(descricao, responsavel){
+        this.descricao = descricao
+        this.responsavel = responsavel
+    }
+    calcularTempoEstimado(){
+    }
+}
 
-// class SepararPedido extends Tarefa {
-//     calcularTempoEstimado(quantidadeItems){
-//         return `A quantidade de tempo estimado será de ${quantidadeItems * 5} minutos.`
-//     }
-// }
-// class ConferirCarga extends Tarefa{
-//     calcularTempoEstimado(){
-//         return`A quantidade de tempo estimado será de 60 minutos.`
-//     }
-// }
-// let separar = new SepararPedido()
-// let separar1 = new SepararPedido()
-// let conferir = new ConferirCarga()
-// let conferir1 = new ConferirCarga()
+class SepararPedido extends Tarefa {
+    calcularTempoEstimado(quantidadeItems){
+        return `A quantidade de tempo estimado será de ${quantidadeItems * 5} minutos.`
+    }
+}
+class ConferirCarga extends Tarefa{
+    calcularTempoEstimado(){
+        return`A quantidade de tempo estimado será de 60 minutos.`
+    }
+}
+let separar = new SepararPedido()
+let separar1 = new SepararPedido()
+let conferir = new ConferirCarga()
+let conferir1 = new ConferirCarga()
 
-// let array = [separar.calcularTempoEstimado(5), separar1.calcularTempoEstimado(10), conferir.calcularTempoEstimado(), conferir1.calcularTempoEstimado()]
-// for(i = 0; i < array.length; i++){
-//     console.log(array[i])
-// }
+let array = [separar.calcularTempoEstimado(5), separar1.calcularTempoEstimado(10), conferir.calcularTempoEstimado(), conferir1.calcularTempoEstimado()]
+for(i = 0; i < array.length; i++){
+    console.log(array[i])
+}
 
 // --------------------------------------------------------
 
