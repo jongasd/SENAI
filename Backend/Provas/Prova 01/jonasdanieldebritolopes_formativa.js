@@ -126,7 +126,6 @@
 //         return`A quantidade de tempo estimado será de 60 minutos.`
 //     }
 // }
-
 // let separar = new SepararPedido()
 // let separar1 = new SepararPedido()
 // let conferir = new ConferirCarga()
