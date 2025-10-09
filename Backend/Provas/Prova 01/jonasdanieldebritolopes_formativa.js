@@ -18,7 +18,7 @@
 // console.log(rastrearCarga("BR12345", localizar))
 
 // --------------------------------------------------------
-//Exercício 02
+// Exercício 02
 
 // class ItemEstoque{
 //     constructor(codigo, descricao, localizacao){
@@ -49,7 +49,7 @@
 //     this.destinos = destinos
 //     }
 //     alterarRota(paradas){
-//     return this.destinos = paradas   
+//     return this.destinos = paradas
 //     }
 //     resumoRota(){
 //         return `Resumo da Rota: Código: ${this.codigo}, Veículo Usado: ${this.veiculo} e Destino encaminhado: ${this.destinos}`
@@ -101,7 +101,7 @@
 // let caixa1 = new Caixa("10cm", "10cm", "10cm", 25)
 // let palete1 = new Palete ("Madeira", 1000)
 // console.log(caixa1.podeConter(10))
-// console.log(palete1.podeConter(100))
+// console.log(palete1.podeConter(1000))
 
 // --------------------------------------------------------
 
@@ -110,7 +110,7 @@
 // class Tarefa{
 //     constructor(descricao, responsavel){
 //         this.descricao = descricao
-//         this.responsavel = responsavel 
+//         this.responsavel = responsavel
 //     }
 //     calcularTempoEstimado(){
 //     }
@@ -128,7 +128,7 @@
 // }
 
 // let separar = new SepararPedido()
-// let separar1 = new SepararPedido() 
+// let separar1 = new SepararPedido()
 // let conferir = new ConferirCarga()
 // let conferir1 = new ConferirCarga()
 
@@ -139,7 +139,7 @@
 
 // --------------------------------------------------------
 
-//Exercicio 06
+// Exercicio 06
 // class Almoxarifado {
 //     #quantidade
 //     #nomeproduto
