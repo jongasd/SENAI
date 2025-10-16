@@ -6,15 +6,15 @@ titulo_livro varchar(200) not null,
 ano_publicacao integer(4),
 editora_livro varchar(50)
 );
-create table tbl_qntd_livro (
-ISBN VARCHAR(50) not null,
-id_autor VARCHAR(50) not null,
-quantidade_livro integer not null
-);
 create table tbl_autor(
 id_autor varchar(50),
 nome_autor varchar(100),
 nacionalidade_autor varchar(50)
+);
+create table tbl_qntd_livro (
+ISBN VARCHAR(50) not null,
+id_autor VARCHAR(50) not null,
+quantidade_livro integer not null
 );
 create table tbl_exemplar (
 id_exemplar varchar(50) primary key unique,
