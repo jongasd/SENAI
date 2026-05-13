@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aula 16 - Layout CSS</title>
+    <link rel="stylesheet" href="src/css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="caixa" id="caixa1">1 (static)</div>
+      <div class="caixa" id="caixa2">2 (relative)</div>
+      <div class="caixa" id="caixa3">3 (absolute)</div>
+      <div class="caixa" id="caixa4">4 (fixed)</div>
+    </div>
+    <div class="footer-clear">Footer</div>
+    <div class="btn" style="position: relative">
+      Botão
+      <span
+        class="tooltip"
+        style="
+          position: absolute;
+          top: -25px;
+          left: 0;
+          background: black;
+          color: white;
+          padding: 4px;
+          border-radius: 4px;
+        "
+      >
+        Texto de ajuda
+      </span>
+      <div class="fixed-btn">Chat</div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,62 @@
+Topologia (Geometria)
+
+ponto a ponto vs multiponto
+
+ponto a ponto apenas uma linha de comibicação ligando 2 máqunas 
+ mutiponto
+ mais de um ponto de comunicação, ligando várias máquinas
+
+modo de transmissão
+dividindo em 3
+simplex - Sinal de direcao unica
+half duplex um de cada vez
+full complex ao mesmo tempo
+
+classificação 
+
+dividindo em 2
+física
+logica
+
+Estrela-star
+-ponto a ponto
+Equipamentos -hub -servidor - switch - roteador - simplex - full duplex
+cabos - par traçado - coaxial - fibra optica
+transmissão - ethernet - fast ethernet - gigabit ethernet - 10 gigabit ethernet 
+velocidade 10Mbps - 100Mpbs - 1000Mpbs - 10000Mbps
+Padrão - 802.3 IEEE - 802.3u - 802.3z - 802.3ab
+
+Anel-ring
+-ponto a ponto
+-Cada PC atua como amplificador
+-simplex
+-pode ter um MAU (Multinstation Access Unit)
+-Cabos- Par trançado - Fibra óptica 
+-Transmissão- Token ring - FDDI
+-Velocidade - 4Mbps - 16Mbps - 100Mpbs
+
+Barramento-BUS
+-multiponto
+-half-duplex
+-cabos - coaxial
+-transmissão - Ethernet - Token Bus 
+-velocidade - 10Mbps - 10 Mbps
+-padrão -802.3 -802.4
+
+Topologia lógica
+
+Estrela - hub
+-Físico = estrela
+-Lógica = barramento
+-1 informação que repete para todos
+
+Estrela - com switch, server, router
+
+-Físico - estrela
+-lógica - estrela
+
+-informação só para o destino
+
+
+
+

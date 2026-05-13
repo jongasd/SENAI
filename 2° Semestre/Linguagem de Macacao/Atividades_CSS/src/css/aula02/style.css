@@ -1,0 +1,10 @@
+.caixa {
+  width: 100px;
+  padding: 10px;
+  border: 1px, solid black;
+}
+.centro {
+  display: flex;
+  justify-content: center;
+}
+

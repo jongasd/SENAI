@@ -1,0 +1,170 @@
+:root{
+    --laranja_escuro: #ff7a18;
+    --laranja_claro: #ffcd4d;
+    --fundo: #fafafa;
+    --borda: #ccc;
+    --fonte: 'Poppins', sans-serif;
+    --margin_bottom: 1rem;
+    --border_radius: 6px;
+}
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--fonte);
+  padding: 1rem;
+  background: var(--fundo);
+}
+
+header {
+  background: linear-gradient(90deg, var(--laranja_claro), var(--laranja_escuro));
+  padding: 1rem;
+  text-align: center;
+  border-radius: 8px;
+  margin-bottom: var(--margin_bottom);
+}
+
+h1 {
+  font-size: 2rem;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: var(--margin_bottom);
+}
+
+nav a {
+  text-decoration: none;
+  padding: .4rem .7rem;
+  border-radius: var(--border_radius);
+  transition: .2s;
+  color: #222;
+  font-weight: 600;
+}
+
+nav a:hover {
+  background: var(--laranja_escuro);
+  color: var(--fundo);
+}
+
+
+main > section,
+aside {
+  background: var(--fundo);
+  padding: 1rem;
+  margin-bottom: var(--margin_bottom);
+  border-radius: var(--border_radius);
+}
+
+
+#hero h2 {
+  font-size: 1.4rem;
+}
+
+
+#hero h2::first-letter {
+  font-size: 2rem;
+  color: var(--laranja_escuro);
+}
+
+h2 + p {
+  margin-bottom: .7rem;
+}
+
+
+img {
+  max-width: 100%;
+  border-radius: var(--border_radius);
+  margin-top: .5rem;
+  transition: .3s;
+}
+
+
+#galeria img:hover {
+  transform: scale(1.05);
+}
+
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: .7rem;
+}
+
+th, td {
+  border: 1px solid var(--borda);
+  padding: .5rem;
+}
+
+
+tbody tr:nth-child(even) {
+  background: #f8f8f8;
+}
+
+thead {
+  background: #eee;
+}
+
+label {
+  font-weight: 600;
+}
+
+input[type="email"] {
+  padding: .5rem;
+  width: 100%;
+  margin-top: .4rem;
+  border: 1px solid var(--borda);
+  border-radius: 4px;
+}
+
+
+.botao-comprar {
+  padding: .6rem;
+  margin-top: .6rem;
+  background: var(--laranja_escuro);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--border_radius);
+  opacity: .9;
+  transition: .3s;
+}
+
+.botao-comprar:hover {
+  opacity: 1;
+}
+
+aside ul {
+  margin-top: .5rem;
+  list-style: none;
+}
+
+aside a {
+  text-decoration: none;
+  color: #222;
+  padding: .2rem 0;
+  display: block;
+}
+
+aside a:hover {
+  color: var(--laranja_escuro);
+}
+
+footer {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: .9rem;
+  color: #555;
+}

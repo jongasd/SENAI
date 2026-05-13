@@ -1,0 +1,60 @@
+{
+  "Aluno": {
+    "matricula": 1125002212,
+    "nome_completo": "Jonas Daniel de Brito Lopes",
+    "email": "lopesjonasdaniel@gmail.com",
+    "idade": 16,
+    "bolsista": false,
+    "media_final": 10.0,
+    "curso": null
+  },
+
+  "Turma": {
+    "codigo_turma": 112244,
+    "periodo": "Manhã",
+    "professor": {
+      "nome": "Babu",
+      "Area": "Matemática"
+    },
+    "alunos": [
+      {
+        "aluno 01": "Jonas Daniel de Brito Lopes",
+        "matricula": 1125002212
+      },
+      {
+        "aluno 02": "Vinicius Valle Rodrigues",
+        "matricula": 1125002210
+      }
+    ]
+  },
+
+  "Pedido": {
+    "id_pedido": "AB1",
+    "data_pedido": "2024-11-27T10:40:00",
+    "status_pedido": "Pendente",
+    "cliente": {
+      "nome": "Vinicius Assunção Santos",
+      "email": "viniciusassunssao@gmail.com"
+    },
+    "endereco_entrega": {
+        "rua":"Estado do Pará",
+        "numero":1192,
+        "cidade":"Salto",
+        "cep":"123-123"
+    },
+    "itens": [
+      {
+        "id_produto": "12A",
+        "nome_produto": "Detergente",
+        "quantidade": 9000000,
+        "preco_unitario": 10.0
+      },
+      {
+        "id_produto": "10P",
+        "nome": "Sabonete",
+        "quantidade": 37,
+        "preco_unitario": 12.0
+      }
+    ]
+  }
+}

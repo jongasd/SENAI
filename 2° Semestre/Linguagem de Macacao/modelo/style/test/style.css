@@ -1,0 +1,12 @@
+h1{
+    color: red;
+    text-align: center;
+    font-size: 50px;
+    font-weight: bold;
+}
+body{
+    background-image: url('/Linguagem de Macacao/modelo/src/images/logo.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
