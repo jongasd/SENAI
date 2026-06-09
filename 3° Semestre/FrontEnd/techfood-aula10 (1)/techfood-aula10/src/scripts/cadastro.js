@@ -1,39 +1,8 @@
-/* ==========================================================
-   CADASTRO.JS — Tela de Cadastro de Pratos (cadastro.html)  NEW
-
-   ROADMAP DESTE ARQUIVO:
-   [✔] Aula 10 — inicializarCadastro(): configura todos os listeners
-                 do formulário em um único ponto de entrada.
-                 validarFormulario(): valida os campos antes de enviar —
-                 nome obrigatório, preço positivo, categoria selecionada.
-                 configurarPreviewImagem(): atualiza a prévia em tempo real
-                 conforme o usuário digita a URL da imagem.
-                 configurarContadorDescricao(): contador de caracteres ao vivo.
-                 salvarNovoPrato(): chama cadastrarProduto() (api.js) via
-                 POST /produtos e exibe feedback de sucesso ou erro.
-                 adicionarPratoNaListaRecentes(): registra o prato recém-
-                 cadastrado em uma lista visual na própria página.
-   [ ] Futuro  — Estratégia de upload de arquivo (FormData + multipart):
-                 substituir o campo URL por <input type="file">, ler o
-                 arquivo com FileReader e enviar via FormData ao servidor.
-                 O back-end precisaria de multer (Node.js) para receber o
-                 arquivo e salvar na pasta src/images/.
-                 Autenticação de admin: verificar localStorage["techfood_admin"]
-                 antes de exibir o formulário — redirecionar se não autenticado.
-
-   Carregado DEPOIS de global.js e api.js em cadastro.html.
-   ========================================================== */
 
 document.addEventListener("DOMContentLoaded", function () {
   inicializarCadastro();
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// inicializarCadastro()
-// Ponto de entrada: registra todos os listeners da tela de cadastro.
-// Separar "registrar listeners" de "lógica de negócio" facilita a manutenção
-// — cada função abaixo faz exatamente uma coisa.
-// ─────────────────────────────────────────────────────────────────────────────
 function inicializarCadastro() {
   const form         = document.querySelector("#form-cadastro");
   const btnLimpar    = document.querySelector("#btn-limpar-form");
@@ -64,12 +33,6 @@ function inicializarCadastro() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// configurarContadorDescricao()
-// Exibe quantos caracteres foram digitados no campo descrição.
-// O max é 200 (definido no HTML pelo maxlength) — o contador fica vermelho
-// ao atingir o limite, sinalizando visualmente que não há mais espaço.
-// ─────────────────────────────────────────────────────────────────────────────
 function configurarContadorDescricao() {
   const inputDesc  = document.querySelector("#input-descricao");
   const contador   = document.querySelector("#contador-descricao");
@@ -81,27 +44,7 @@ function configurarContadorDescricao() {
   contador.style.color = atual >= maximo ? "#e74c3c" : "#aaa";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// configurarPreviewImagem()
-// Estratégia de imagem escolhida: URL externa.
-//
-// Como funciona:
-//   1. O admin cola a URL de uma imagem já hospedada na internet.
-//   2. Esta função cria um objeto Image temporário para testar se a URL
-//      carrega com sucesso antes de exibir o preview.
-//   3. Se a URL for válida (onload), exibe a prévia abaixo do campo.
-//   4. Se a URL for inválida (onerror), oculta o preview e mostra erro.
-//
-// Por que não <input type="file">?
-//   Upload de arquivo requer FormData, um servidor com multer (Node.js)
-//   para receber o binário, e uma pasta para salvar — complexidade além
-//   do escopo desta aula. URL externa é só uma string no JSON, funciona
-//   com o mesmo POST /produtos já implementado.
-//
-// Limitação conhecida: a URL precisa ser acessível publicamente.
-//   Imagens de outras abas abertas no navegador (blob: / data:) não funcionam
-//   quando salvas no banco — apenas URLs https:// são recomendadas.
-// ─────────────────────────────────────────────────────────────────────────────
+
 function configurarPreviewImagem() {
   const inputImagem  = document.querySelector("#input-imagem");
   const container    = document.querySelector("#preview-imagem-container");
@@ -133,19 +76,6 @@ function configurarPreviewImagem() {
   testImg.src = url;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// validarFormulario()
-// Verifica se os campos obrigatórios estão preenchidos e com valores válidos.
-//
-// Retorna true se tudo estiver ok — false se houver qualquer erro.
-// Os spans .campo-erro são limpos a cada validação para não acumular mensagens.
-//
-// Por que validar no front-end se o back-end também valida?
-//   Validação no front dá feedback imediato — o usuário não precisa esperar
-//   o servidor responder para saber que esqueceu de preencher o preço.
-//   A validação do back-end é a "barreira de segurança" — nunca confia só
-//   no front-end. As duas precisam existir.
-// ─────────────────────────────────────────────────────────────────────────────
 function validarFormulario() {
   let valido = true;
 
@@ -182,22 +112,7 @@ function validarFormulario() {
   return valido;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// salvarNovoPrato()                                                       NEW
-// Aula 10: ponto central do arquivo — lê o formulário, valida,
-// monta o objeto e envia ao servidor via cadastrarProduto() (api.js).
-//
-// O objeto enviado segue o formato que o back-end espera:
-//   { nome, descricao, preco, categoria, imagem }
-//   "imagem" é opcional — o back-end aceita null e trata adequadamente.
-//
-// Fluxo completo:
-//   1. validarFormulario() — aborta se houver campo inválido
-//   2. desabilita o botão — evita duplo envio enquanto aguarda a resposta
-//   3. cadastrarProduto() (api.js) — POST /produtos
-//   4. sucesso → feedback verde, limpa formulário, adiciona na lista recentes
-//   5. erro    → feedback vermelho, re-habilita o botão para nova tentativa
-// ─────────────────────────────────────────────────────────────────────────────
+
 async function salvarNovoPrato() {
   if (!validarFormulario()) return;
 
@@ -216,11 +131,6 @@ async function salvarNovoPrato() {
   btnSalvar.textContent = "Salvando...";
 
   try {
-    // ── FETCH API em ação — POST /produtos ─────────────────────────────────
-    // cadastrarProduto() (api.js) envia o objeto como JSON ao servidor.
-    // O servidor valida os dados, insere no banco e retorna o prato criado
-    // com o id gerado automaticamente.
-    // Após o sucesso, o prato aparece no cardápio via GET /produtos (main.js).
     const pratoCriado = await cadastrarProduto(novoPrato); // HTTP POST → /produtos
 
     exibirFeedback(feedback, "sucesso", `✓ Prato "${novoPrato.nome}" cadastrado com sucesso!`);
@@ -243,12 +153,7 @@ async function salvarNovoPrato() {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// exibirFeedback(elemento, tipo, mensagem)
-// Exibe a mensagem de sucesso ou erro no bloco #feedback-cadastro.
-// tipo: "sucesso" | "erro" — aplica a classe CSS correspondente.
-// O bloco é ocultado automaticamente após 4 segundos.
-// ─────────────────────────────────────────────────────────────────────────────
+
 function exibirFeedback(elemento, tipo, mensagem) {
   if (!elemento) return;
 
@@ -261,12 +166,7 @@ function exibirFeedback(elemento, tipo, mensagem) {
   }, 4000);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// adicionarPratoNaListaRecentes(prato)
-// Exibe o prato recém-cadastrado na lista "#lista-recentes" da página.
-// Serve como confirmação visual — o admin vê o que foi salvo sem precisar
-// ir ao cardápio. A lista não persiste após recarregar (sem localStorage aqui).
-// ─────────────────────────────────────────────────────────────────────────────
+
 function adicionarPratoNaListaRecentes(prato) {
   const secaoRecentes = document.querySelector("#secao-recentes");
   const lista         = document.querySelector("#lista-recentes");
@@ -285,11 +185,7 @@ function adicionarPratoNaListaRecentes(prato) {
   lista.appendChild(li);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// limparFormulario()
-// Zera todos os campos do formulário e oculta o preview de imagem.
-// Chamado após cadastro com sucesso e pelo botão "Limpar".
-// ─────────────────────────────────────────────────────────────────────────────
+
 function limparFormulario() {
   const form = document.querySelector("#form-cadastro");
   if (form) form.reset();
@@ -309,38 +205,3 @@ function limparFormulario() {
 }
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-// REFERÊNCIA — Estratégia de upload de arquivo (FormData)      COMENTADA
-// Aula Futura: substituir o campo URL por <input type="file">.
-//
-// O que muda:
-//   1. HTML: <input type="file" id="input-arquivo" accept="image/*">
-//   2. cadastro.js: ler o arquivo e enviar via FormData:
-//
-//   async function salvarNovoPratoComArquivo() {
-//     const arquivo = document.querySelector("#input-arquivo").files[0];
-//     const form    = new FormData();
-//     form.append("nome",      document.querySelector("#input-nome").value);
-//     form.append("descricao", document.querySelector("#input-descricao").value);
-//     form.append("preco",     document.querySelector("#input-preco").value);
-//     form.append("categoria", document.querySelector("#select-categoria").value);
-//     if (arquivo) form.append("imagem", arquivo);
-//
-//     // NÃO definir Content-Type aqui — o navegador define automaticamente
-//     // incluindo o boundary do multipart/form-data.
-//     const response = await fetch(`${BASE_URL}/produtos`, {
-//       method: "POST",
-//       body: form,
-//     });
-//     const dados = await response.json();
-//     if (!response.ok) throw new Error(dados.erro || `Erro ${response.status}`);
-//     return dados;
-//   }
-//
-//   3. Back-end (app.js): adicionar multer para receber o arquivo:
-//      const multer = require("multer");
-//      const upload = multer({ dest: "src/images/" });
-//      app.post("/produtos", upload.single("imagem"), rotaProdutos.criar);
-//
-//   4. Rota criar: usar req.file.filename como nome do arquivo salvo.
-// ─────────────────────────────────────────────────────────────────────────────

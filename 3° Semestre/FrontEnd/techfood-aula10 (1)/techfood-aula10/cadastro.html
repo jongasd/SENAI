@@ -28,15 +28,6 @@
     <main>
       <section id="secao-cadastro">
         <h2 class="titulo-secao">&#127859; Cadastrar Novo Prato</h2>
-
-        <!--
-          Formulário de cadastro — Aula 10
-          Campos obrigatórios: nome, descrição, preço, categoria.
-          Campo de imagem: URL externa (estratégia mais simples — sem upload de arquivo).
-          O cadastro.js valida todos os campos antes de enviar ao back-end.
-          POST /produtos — definido em api.js (cadastrarProduto).
-          Após sucesso, exibe mensagem de feedback e limpa o formulário.
-        -->
         <form id="form-cadastro" novalidate>
 
           <div class="campo-grupo">
@@ -78,11 +69,6 @@
 
             <div class="campo-grupo">
               <label for="select-categoria">Categoria *</label>
-              <!--
-                Categorias fixas por ora — Aula Futura:
-                buscar de GET /categorias para popular este select
-                dinamicamente (mesmo padrão do buscarProdutos).
-              -->
               <select id="select-categoria">
                 <option value="">Selecione...</option>
                 <option value="Massas">Massas</option>
@@ -95,16 +81,6 @@
               <span class="campo-erro" id="erro-categoria"></span>
             </div>
           </div>
-
-          <!--
-            ESTRATÉGIA DE IMAGEM: URL EXTERNA
-            O usuário informa a URL de uma imagem já hospedada na internet.
-            Vantagens: sem back-end de upload, sem multipart/form-data,
-            sem pasta src/images/ — POST /produtos envia apenas texto JSON.
-            Limitação: o usuário precisa de uma imagem acessível publicamente.
-            Alternativa mais avançada: upload de arquivo com FormData
-            (comentada no cadastro.js para referência).
-          -->
           <div class="campo-grupo">
             <label for="input-imagem">URL da Imagem (opcional)</label>
             <input
@@ -113,10 +89,6 @@
               placeholder="https://exemplo.com/imagem.jpg"
             />
             <span class="campo-erro" id="erro-imagem"></span>
-            <!--
-              Preview em tempo real: cadastro.js atualiza #preview-imagem
-              a cada mudança no campo — o admin vê a imagem antes de salvar.
-            -->
             <div id="preview-imagem-container" style="display: none;">
               <img id="preview-imagem" src="" alt="Pr&#233;via da imagem" />
             </div>
@@ -134,12 +106,6 @@
           </div>
 
         </form>
-
-        <!--
-          Lista de pratos recém-cadastrados nesta sessão — Aula 10
-          Exibe apenas os pratos cadastrados enquanto a aba estiver aberta.
-          Ao recarregar, o cardápio completo vem do banco via GET /produtos.
-        -->
         <div id="secao-recentes" style="display: none;">
           <h3 class="titulo-secao" style="margin-top: 40px;">
             &#128203; Cadastrados Nesta Sess&#227;o
@@ -158,12 +124,6 @@
       </div>
       <p id="data-hora-footer"></p>
     </footer>
-
-    <!--
-      global.js primeiro — saudação e data do rodapé.
-      api.js segundo  — cadastrarProduto() usada pelo cadastro.js.
-      cadastro.js por último — depende das duas anteriores.
-    -->
     <script src="src/scripts/global.js"></script>
     <script src="src/scripts/api.js"></script>
     <script src="src/scripts/cadastro.js"></script>

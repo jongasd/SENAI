@@ -1,17 +1,10 @@
-/* ==========================================================
-   CADASTRO.CSS — Estilos da página Cadastrar Prato          NEW
-   Aula 10: segue a mesma paleta e padrão de pedidos.css.
-   Variáveis de cor definidas em global.css — usadas aqui via var().
-   ========================================================== */
 
-/* ── Seção principal ─────────────────────────────────────── */
 #secao-cadastro {
   max-width: 620px;
   margin: 0 auto;
   padding: 40px 20px;
 }
 
-/* ── Formulário ──────────────────────────────────────────── */
 #form-cadastro {
   background: #fff;
   border: 1px solid #e0e0e0;
@@ -19,7 +12,6 @@
   padding: 32px;
 }
 
-/* ── Grupo de campo (label + input + erro) ───────────────── */
 .campo-grupo {
   display: flex;
   flex-direction: column;
@@ -34,7 +26,6 @@
   letter-spacing: 0.3px;
 }
 
-/* ── Inputs, textarea e select ───────────────────────────── */
 .campo-grupo input,
 .campo-grupo textarea,
 .campo-grupo select {
@@ -61,14 +52,12 @@
 
 .campo-grupo select {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
   cursor: pointer;
 }
 
-/* ── Contador de caracteres ──────────────────────────────── */
 .campo-contador {
   font-size: 0.75rem;
   color: #aaa;
@@ -76,22 +65,19 @@
   margin-top: 4px;
 }
 
-/* ── Mensagens de erro de validação ──────────────────────── */
 .campo-erro {
   font-size: 0.78rem;
   color: var(--cor-vermelho);
   margin-top: 4px;
-  min-height: 1em; /* evita o layout "pular" quando o erro aparece */
+  min-height: 1em;
 }
 
-/* ── Dois campos lado a lado (preço + categoria) ─────────── */
 .campos-lado-a-lado {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-/* ── Preview da imagem ───────────────────────────────────── */
 #preview-imagem-container {
   margin-top: 12px;
   border: 2px dashed #e0e0e0;
@@ -107,7 +93,6 @@
   display: block;
 }
 
-/* ── Feedback de sucesso / erro ──────────────────────────── */
 #feedback-cadastro {
   padding: 12px 16px;
   border-radius: 8px;
@@ -128,7 +113,6 @@
   border: 1px solid #f5c6cb;
 }
 
-/* ── Grupo de botões ─────────────────────────────────────── */
 .btn-cadastro-grupo {
   display: flex;
   justify-content: flex-end;
@@ -175,7 +159,6 @@
   color: #555;
 }
 
-/* ── Lista de pratos recém-cadastrados ───────────────────── */
 #lista-recentes {
   list-style: none;
   padding: 0;
@@ -208,7 +191,6 @@
   to   { opacity: 1; transform: translateY(0);    }
 }
 
-/* ── Badge de categoria na lista recentes ────────────────── */
 .categoria-badge {
   font-size: 0.7rem;
   font-weight: bold;
@@ -220,7 +202,6 @@
   letter-spacing: 0.4px;
 }
 
-/* ── Label "✓ Cadastrado" ────────────────────────────────── */
 .recente-label {
   margin-left: auto;
   font-size: 0.78rem;
@@ -228,7 +209,6 @@
   font-weight: bold;
 }
 
-/* ── Responsivo ──────────────────────────────────────────── */
 @media (max-width: 600px) {
   #form-cadastro {
     padding: 20px;
