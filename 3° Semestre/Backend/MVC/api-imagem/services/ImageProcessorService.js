@@ -14,7 +14,7 @@ class ImageProcessorService {
 
     const uniqueFilename = `${uuidv4()}.webp`;
     const finalPath = path.join(this.outputDir, uniqueFilename);
-
+     
     try {
       // Processamento da imagem com Sharp
       await sharp(tempFilePath).webp({ quality: 80 }).toFile(finalPath);
