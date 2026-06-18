@@ -1,144 +1,115 @@
-// ════════════════════════════════════════════════════════════════
-//  SMART-IRRIGATE — Caderno de Campo IoT
-//  Conecta ao broker Mosquitto via MQTT.js (WebSocket)
-//  Tópicos:
-//    senai/irrigacao/sensores → Pico publica leituras (umidade, luz, motor)
-//    senai/irrigacao/comando  → Dashboard publica comandos manuais
-// ════════════════════════════════════════════════════════════════
+let clienteMqtt = null;
+let estaConectado = false;
+let totalMensagens = 0;
+const MAX_ITENS_LOG = 60;
+const MAX_PONTOS_HISTORICO = 30;
+const LIMITE_SOLO = 30;
 
-// ────────────────────────────────────────────────────────────────────
-//  Estado da aplicação
-// ────────────────────────────────────────────────────────────────────
-let mqttClient = null;
-let isConnected = false;
-let totalMessages = 0;
-const MAX_LOG_ITEMS = 60;
-const MAX_HISTORY_PTS = 30;
-const SOIL_THRESHOLD = 30; // limiar de irrigação automática, em %
+let historicoSolo = [];
+let historicoLuz = [];
 
-// Histórico de leituras para o gráfico (soil e light em %)
-let soilHistory = [];
-let lightHistory = [];
-
-// ────────────────────────────────────────────────────────────────────
-//  Aplica o selo de carimbo (OK / BAIXO / ALTO) a uma ficha de leitura
-// ────────────────────────────────────────────────────────────────────
-function applyStamp(stampId, level) {
-  const stamp = document.getElementById(stampId);
-  if (!stamp) return;
-  stamp.classList.remove("ok", "low", "high");
-  if (level === "ok") {
-    stamp.textContent = "OK";
-    stamp.classList.add("ok");
-  } else if (level === "low") {
-    stamp.textContent = "BAIXO";
-    stamp.classList.add("low");
-  } else if (level === "high") {
-    stamp.textContent = "ALTO";
-    stamp.classList.add("high");
+function aplicarCarimbo(idCarimbo, nivel) {
+  const carimbo = document.getElementById(idCarimbo);
+  if (!carimbo) return;
+  carimbo.classList.remove("ok", "low", "high");
+  if (nivel === "ok") {
+    carimbo.textContent = "OK";
+    carimbo.classList.add("ok");
+  } else if (nivel === "low") {
+    carimbo.textContent = "BAIXO";
+    carimbo.classList.add("low");
+  } else if (nivel === "high") {
+    carimbo.textContent = "ALTO";
+    carimbo.classList.add("high");
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza a barra linear de uma ficha (substitui o gauge semicircular)
-//  pct: 0–100
-// ────────────────────────────────────────────────────────────────────
-function updateBar(fillId, pct) {
-  const fill = document.getElementById(fillId);
-  if (!fill) return;
-  const clamped = Math.max(0, Math.min(100, pct));
-  fill.style.width = `${clamped}%`;
+function atualizarBarra(idPreenchimento, pct) {
+  const preenchimento = document.getElementById(idPreenchimento);
+  if (!preenchimento) return;
+  const limitado = Math.max(0, Math.min(100, pct));
+  preenchimento.style.width = `${limitado}%`;
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza a ficha de umidade do solo
-// ────────────────────────────────────────────────────────────────────
-function updateSoilCard(pct) {
+function atualizarCartaoSolo(pct) {
   document.getElementById("soilValue").textContent = `${pct.toFixed(0)}%`;
-  updateBar("soilBarFill", pct);
+  atualizarBarra("soilBarFill", pct);
 
-  const statusEl = document.getElementById("soilStatus");
-  if (pct < SOIL_THRESHOLD) {
-    statusEl.textContent = "Solo seco — irrigação necessária";
-    applyStamp("soilStamp", "low");
+  const elStatus = document.getElementById("soilStatus");
+  if (pct < LIMITE_SOLO) {
+    elStatus.textContent = "Solo seco — irrigação necessária";
+    aplicarCarimbo("soilStamp", "low");
   } else if (pct < 60) {
-    statusEl.textContent = "Umidade moderada";
-    applyStamp("soilStamp", "ok");
+    elStatus.textContent = "Umidade moderada";
+    aplicarCarimbo("soilStamp", "ok");
   } else {
-    statusEl.textContent = "Solo bem hidratado";
-    applyStamp("soilStamp", "ok");
+    elStatus.textContent = "Solo bem hidratado";
+    aplicarCarimbo("soilStamp", "ok");
   }
 
-  soilHistory.push(pct);
-  if (soilHistory.length > MAX_HISTORY_PTS) soilHistory.shift();
-  redrawChart();
+  historicoSolo.push(pct);
+  if (historicoSolo.length > MAX_PONTOS_HISTORICO) historicoSolo.shift();
+  redesenharGrafico();
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza a ficha de luminosidade
-// ────────────────────────────────────────────────────────────────────
-function updateLightCard(pct) {
+function atualizarCartaoLuz(pct) {
   document.getElementById("lightValue").textContent = `${pct.toFixed(0)}%`;
-  updateBar("lightBarFill", pct);
+  atualizarBarra("lightBarFill", pct);
 
-  const statusEl = document.getElementById("lightStatus");
+  const elStatus = document.getElementById("lightStatus");
   if (pct < 30) {
-    statusEl.textContent = "Pouca luminosidade";
-    applyStamp("lightStamp", "low");
+    elStatus.textContent = "Pouca luminosidade";
+    aplicarCarimbo("lightStamp", "low");
   } else if (pct < 70) {
-    statusEl.textContent = "Luminosidade moderada";
-    applyStamp("lightStamp", "ok");
+    elStatus.textContent = "Luminosidade moderada";
+    aplicarCarimbo("lightStamp", "ok");
   } else {
-    statusEl.textContent = "Alta luminosidade";
-    applyStamp("lightStamp", "high");
+    elStatus.textContent = "Alta luminosidade";
+    aplicarCarimbo("lightStamp", "high");
   }
 
-  lightHistory.push(pct);
-  if (lightHistory.length > MAX_HISTORY_PTS) lightHistory.shift();
-  redrawChart();
+  historicoLuz.push(pct);
+  if (historicoLuz.length > MAX_PONTOS_HISTORICO) historicoLuz.shift();
+  redesenharGrafico();
 }
-
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza o estado visual do sistema de irrigação (garrafa + furos)
-// ────────────────────────────────────────────────────────────────────
-function updateIrrigationState(irrigando) {
-  const stateDot = document.getElementById("stateDot");
-  const stateLabel = document.getElementById("stateLabel");
-  const waterDrops = document.getElementById("waterDrops");
-  const bottleBody = document.getElementById("bottleBody");
+function atualizarEstadoIrrigacao(irrigando) {
+  const pontoEstado = document.getElementById("stateDot");
+  const rotuloEstado = document.getElementById("stateLabel");
+  const gotasAgua = document.getElementById("waterDrops");
+  const corpoGarrafa = document.getElementById("bottleBody");
 
   if (irrigando) {
-    stateDot.classList.add("active");
-    stateLabel.textContent = "Irrigando agora";
-    waterDrops.classList.add("dripping");
-    waterDrops.style.opacity = "1";
-    bottleBody.setAttribute("fill", "#cfc4a8");
+    pontoEstado.classList.add("active");
+    rotuloEstado.textContent = "Irrigando agora";
+    gotasAgua.classList.add("dripping");
+    gotasAgua.style.opacity = "1";
+    corpoGarrafa.setAttribute("fill", "#cfc4a8");
   } else {
-    stateDot.classList.remove("active");
-    stateLabel.textContent = "Sistema parado";
-    waterDrops.classList.remove("dripping");
-    waterDrops.style.opacity = "0";
-    bottleBody.setAttribute("fill", "#dcd2ba");
+    pontoEstado.classList.remove("active");
+    rotuloEstado.textContent = "Sistema parado";
+    gotasAgua.classList.remove("dripping");
+    gotasAgua.style.opacity = "0";
+    corpoGarrafa.setAttribute("fill", "#dcd2ba");
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Redesenha o gráfico de histórico (soil + light) como polylines SVG
-//  viewBox atual: 900 x 160 (faixa larga e baixa)
-// ────────────────────────────────────────────────────────────────────
-function redrawChart() {
-  const width = 900;
-  const height = 160;
-  const padding = 8;
+function redesenharGrafico() {
+  const largura = 900;
+  const altura = 160;
+  const preenchimentoEspaco = 8;
 
-  const toPoints = (arr) => {
+  const paraPontos = (arr) => {
     if (arr.length === 0) return "";
-    const stepX = (width - padding * 2) / Math.max(arr.length - 1, 1);
+    const passoX =
+      (largura - preenchimentoEspaco * 2) / Math.max(arr.length - 1, 1);
     return arr
       .map((val, i) => {
-        const x = padding + i * stepX;
+        const x = preenchimentoEspaco + i * passoX;
         // Inverte porque SVG y crece para baixo; 100% = topo, 0% = base
-        const y = height - padding - (val / 100) * (height - padding * 2);
+        const y =
+          altura -
+          preenchimentoEspaco -
+          (val / 100) * (altura - preenchimentoEspaco * 2);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       })
       .join(" ");
@@ -146,268 +117,229 @@ function redrawChart() {
 
   document
     .getElementById("soilLine")
-    .setAttribute("points", toPoints(soilHistory));
+    .setAttribute("points", paraPontos(historicoSolo));
   document
     .getElementById("lightLine")
-    .setAttribute("points", toPoints(lightHistory));
+    .setAttribute("points", paraPontos(historicoLuz));
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Adiciona entrada no trilho de log (margem esquerda)
-// ────────────────────────────────────────────────────────────────────
-function addLogEntry(icon, text) {
-  const list = document.getElementById("logList");
-  const empty = document.getElementById("logEmpty");
-  if (empty) empty.remove();
+function adicionarEntradaLog(icone, texto) {
+  const lista = document.getElementById("logList");
+  const vazio = document.getElementById("logEmpty");
+  if (vazio) vazio.remove();
 
-  const entry = document.createElement("div");
-  entry.className = "log-entry";
-  entry.innerHTML = `
-    <span class="log-time">${formatTime(new Date())}</span>
-    <span class="log-text">${icon} ${text}</span>
+  const entrada = document.createElement("div");
+  entrada.className = "log-entry";
+  entrada.innerHTML = `
+    <span class="log-time">${formatarTempo(new Date())}</span>
+    <span class="log-text">${icone} ${texto}</span>
   `;
 
-  list.insertBefore(entry, list.firstChild);
+  lista.insertBefore(entrada, lista.firstChild);
 
-  while (list.children.length > MAX_LOG_ITEMS) {
-    list.removeChild(list.lastChild);
+  while (lista.children.length > MAX_ITENS_LOG) {
+    lista.removeChild(lista.lastChild);
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza o contador de mensagens na margem direita
-// ────────────────────────────────────────────────────────────────────
-function updateMsgCounter() {
+function atualizarContadorMsg() {
   const el = document.getElementById("msgCounter");
-  if (el) el.textContent = `${totalMessages} lidas`;
+  if (el) el.textContent = `${totalMensagens} lidas`;
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Processa mensagem MQTT recebida no tópico de sensores
-//  Payload esperado:
-//  {
-//    "umidade_solo": 42.5,
-//    "luminosidade": 78.3,
-//    "motor_estado": "parado" | "irrigando",
-//    "irrigando": false,
-//    "timestamp": 1718745600
-//  }
-// ────────────────────────────────────────────────────────────────────
-function handleSensorMessage(payload) {
-  if (typeof payload.umidade_solo === "number") {
-    updateSoilCard(payload.umidade_solo);
+function tratarMensagemSensor(carga) {
+  if (typeof carga.umidade_solo === "number") {
+    atualizarCartaoSolo(carga.umidade_solo);
   }
 
-  if (typeof payload.luminosidade === "number") {
-    updateLightCard(payload.luminosidade);
+  if (typeof carga.luminosidade === "number") {
+    atualizarCartaoLuz(carga.luminosidade);
   }
 
-  if (typeof payload.irrigando === "boolean") {
-    const wasIrrigating = document
+  if (typeof carga.irrigando === "boolean") {
+    const estavaIrrigando = document
       .getElementById("stateDot")
       .classList.contains("active");
-    updateIrrigationState(payload.irrigando);
+    atualizarEstadoIrrigacao(carga.irrigando);
 
     // Loga apenas na transição de estado
-    if (payload.irrigando && !wasIrrigating) {
-      addLogEntry("💧", "Irrigação iniciada automaticamente");
-    } else if (!payload.irrigando && wasIrrigating) {
-      addLogEntry("✅", "Irrigação concluída — solo hidratado");
+    if (carga.irrigando && !estavaIrrigando) {
+      adicionarEntradaLog("💧", "Irrigação iniciada automaticamente");
+    } else if (!carga.irrigando && estavaIrrigando) {
+      adicionarEntradaLog("✅", "Irrigação concluída — solo hidratado");
     }
   }
 
-  addLogEntry(
+  adicionarEntradaLog(
     "📊",
-    `Leitura: solo ${payload.umidade_solo?.toFixed(0) ?? "—"}% · luz ${payload.luminosidade?.toFixed(0) ?? "—"}%`,
+    `Leitura: solo ${carga.umidade_solo?.toFixed(0) ?? "—"}% · luz ${carga.luminosidade?.toFixed(0) ?? "—"}%`,
   );
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Processa mensagem MQTT recebida no tópico de status
-// ────────────────────────────────────────────────────────────────────
-function handleStatusMessage(payload) {
-  if (payload.status) {
-    addLogEntry("📡", `Dispositivo: ${payload.status}`);
+function tratarMensagemStatus(carga) {
+  if (carga.status) {
+    adicionarEntradaLog("📡", `Dispositivo: ${carga.status}`);
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Roteador de mensagens MQTT
-// ────────────────────────────────────────────────────────────────────
-function handleMessage(topic, message) {
-  totalMessages++;
-  updateMsgCounter();
+function tratarMensagem(topico, mensagem) {
+  totalMensagens++;
+  atualizarContadorMsg();
 
-  let payload;
+  let carga;
   try {
-    payload = JSON.parse(message.toString());
+    carga = JSON.parse(mensagem.toString());
   } catch (e) {
-    console.warn("[MQTT] Payload inválido:", message.toString());
+    console.warn("[MQTT] Payload inválido:", mensagem.toString());
     return;
   }
 
-  const sensorsTopic = document.getElementById("topicSensors").value.trim();
+  const topicoSensores = document.getElementById("topicSensors").value.trim();
 
-  if (topic === sensorsTopic) {
-    handleSensorMessage(payload);
-  } else if (topic.endsWith("/status")) {
-    handleStatusMessage(payload);
+  if (topico === topicoSensores) {
+    tratarMensagemSensor(carga);
+  } else if (topico.endsWith("/status")) {
+    tratarMensagemStatus(carga);
   }
 
-  console.log(`[MQTT] ${topic} →`, payload);
+  console.log(`[MQTT] ${topico} →`, carga);
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Envia comando manual (ligar/desligar) para o tópico de comando
-// ────────────────────────────────────────────────────────────────────
-function sendCommand(acao) {
-  if (!isConnected || !mqttClient) {
+function enviarComando(acao) {
+  if (!estaConectado || !clienteMqtt) {
     alert("Conecte ao broker MQTT antes de enviar comandos.");
     return;
   }
 
-  const topic = document.getElementById("topicCommand").value.trim();
-  const payload = JSON.stringify({
+  const topico = document.getElementById("topicCommand").value.trim();
+  const carga = JSON.stringify({
     comando: acao,
     origem: "dashboard",
     timestamp: Math.floor(Date.now() / 1000),
   });
 
-  mqttClient.publish(topic, payload, { qos: 0 }, (err) => {
+  clienteMqtt.publish(topico, carga, { qos: 0 }, (err) => {
     if (err) {
       console.error("[MQTT] Erro ao publicar comando:", err);
-      addLogEntry("⚠️", `Falha ao enviar comando: ${acao}`);
+      adicionarEntradaLog("⚠️", `Falha ao enviar comando: ${acao}`);
     } else {
-      addLogEntry("🎛️", `Comando manual enviado: ${acao}`);
+      adicionarEntradaLog("🎛️", `Comando manual enviado: ${acao}`);
     }
   });
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Gerenciamento da conexão MQTT
-// ────────────────────────────────────────────────────────────────────
-function toggleConnection() {
-  if (isConnected) {
-    disconnectMqtt();
+function alternarConexao() {
+  if (estaConectado) {
+    desconectarMqtt();
   } else {
-    connectMqtt();
+    conectarMqtt();
   }
 }
 
-function connectMqtt() {
+function conectarMqtt() {
   const ip = document.getElementById("brokerIp").value.trim();
-  const port = parseInt(document.getElementById("brokerPort").value.trim());
-  const sensorsTopic = document.getElementById("topicSensors").value.trim();
+  const porta = parseInt(document.getElementById("brokerPort").value.trim());
+  const topicoSensores = document.getElementById("topicSensors").value.trim();
 
-  if (!ip || !port || !sensorsTopic) {
+  if (!ip || !porta || !topicoSensores) {
     alert("Preencha IP, Porta e Tópico de Sensores antes de conectar.");
     return;
   }
 
-  // Sem path extra — Mosquitto aceita handshake WebSocket na raiz por padrão
-  const url = `ws://${ip}:${port}`;
+  const url = `ws://${ip}:${porta}`;
   console.log(`[MQTT] Conectando em ${url}...`);
 
-  setStatus("connecting", "CONECTANDO...");
+  definirStatus("connecting", "CONECTANDO...");
   document.getElementById("btnConnect").disabled = true;
 
-  const clientId = `dashboard_irrigacao_${Math.random().toString(16).slice(2, 8)}`;
+  const idCliente = `dashboard_irrigacao_${Math.random().toString(16).slice(2, 8)}`;
 
-  mqttClient = mqtt.connect(url, {
-    clientId,
+  clienteMqtt = mqtt.connect(url, {
+    clientId: idCliente,
     clean: true,
     connectTimeout: 5000,
     reconnectPeriod: 3000,
   });
 
-  mqttClient.on("connect", () => {
-    isConnected = true;
-    setStatus("connected", "CONECTADO");
+  clienteMqtt.on("connect", () => {
+    estaConectado = true;
+    definirStatus("connected", "CONECTADO");
 
     const btn = document.getElementById("btnConnect");
     btn.textContent = "DESCONECTAR";
     btn.classList.add("disconnect");
     btn.disabled = false;
 
-    console.log(`[MQTT] Conectado! Assinando: ${sensorsTopic}`);
-    mqttClient.subscribe(sensorsTopic, { qos: 0 });
+    console.log(`[MQTT] Conectado! Assinando: ${topicoSensores}`);
+    clienteMqtt.subscribe(topicoSensores, { qos: 0 });
 
     // Assina também o tópico de status, se existir convenção /status
-    const statusTopic = sensorsTopic.replace("/sensores", "/status");
-    if (statusTopic !== sensorsTopic) {
-      mqttClient.subscribe(statusTopic, { qos: 0 });
+    const topicoStatus = topicoSensores.replace("/sensores", "/status");
+    if (topicoStatus !== topicoSensores) {
+      clienteMqtt.subscribe(topicoStatus, { qos: 0 });
     }
 
-    addLogEntry("🔌", "Conectado ao broker MQTT");
+    adicionarEntradaLog("🔌", "Conectado ao broker MQTT");
   });
 
-  mqttClient.on("message", (t, msg) => handleMessage(t, msg));
+  clienteMqtt.on("message", (t, msg) => tratarMensagem(t, msg));
 
-  mqttClient.on("reconnect", () => {
-    setStatus("connecting", "RECONECTANDO...");
+  clienteMqtt.on("reconnect", () => {
+    definirStatus("connecting", "RECONECTANDO...");
   });
 
-  mqttClient.on("offline", () => {
-    isConnected = false;
-    setStatus("error", "OFFLINE");
+  clienteMqtt.on("offline", () => {
+    estaConectado = false;
+    definirStatus("error", "OFFLINE");
   });
 
-  mqttClient.on("error", (err) => {
+  clienteMqtt.on("error", (err) => {
     console.error("[MQTT] Erro:", err);
-    setStatus("error", "ERRO");
+    definirStatus("error", "ERRO");
     document.getElementById("btnConnect").disabled = false;
   });
 
-  mqttClient.on("close", () => {
-    if (isConnected) {
-      isConnected = false;
-      setStatus("error", "DESCONECTADO");
+  clienteMqtt.on("close", () => {
+    if (estaConectado) {
+      estaConectado = false;
+      definirStatus("error", "DESCONECTADO");
     }
   });
 }
 
-function disconnectMqtt() {
-  if (mqttClient) {
-    mqttClient.end(true);
-    mqttClient = null;
+function desconectarMqtt() {
+  if (clienteMqtt) {
+    clienteMqtt.end(true);
+    clienteMqtt = null;
   }
-  isConnected = false;
-  setStatus("connecting", "DESCONECTADO");
+  estaConectado = false;
+  definirStatus("connecting", "DESCONECTADO");
 
   const btn = document.getElementById("btnConnect");
   btn.textContent = "CONECTAR";
   btn.classList.remove("disconnect");
   btn.disabled = false;
 
-  addLogEntry("🔌", "Desconectado do broker MQTT");
+  adicionarEntradaLog("🔌", "Desconectado do broker MQTT");
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  UI helpers
-// ────────────────────────────────────────────────────────────────────
-function setStatus(cls, text) {
-  const badge = document.getElementById("statusBadge");
-  badge.className = `status-badge ${cls}`;
-  document.getElementById("statusText").textContent = text;
+function definirStatus(cls, texto) {
+  const indicador = document.getElementById("statusBadge");
+  indicador.className = `status-badge ${cls}`;
+  document.getElementById("statusText").textContent = texto;
 }
 
-function formatTime(d) {
+function formatarTempo(d) {
   return d.toLocaleTimeString("pt-BR", { hour12: false });
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Relógio no footer
-// ────────────────────────────────────────────────────────────────────
-function updateClock() {
+function atualizarRelogio() {
   document.getElementById("footerTime").textContent = new Date().toLocaleString(
     "pt-BR",
   );
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Init
-// ────────────────────────────────────────────────────────────────────
-updateClock();
-setInterval(updateClock, 1000);
-redrawChart(); // desenha grade vazia inicialmente
-updateMsgCounter();
+atualizarRelogio();
+setInterval(atualizarRelogio, 1000);
+redesenharGrafico();
+atualizarContadorMsg();

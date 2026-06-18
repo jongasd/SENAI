@@ -12,7 +12,6 @@
   </head>
 
   <body>
-    <!-- HEADER -->
 
     <header class="header">
       <div class="brand">
@@ -33,8 +32,6 @@
         <div class="msg-counter" id="msgCounter">0 lidas</div>
       </div>
     </header>
-
-    <!-- CONFIGURAÇÃO MQTT -->
 
     <section class="connect-panel">
       <input
@@ -63,11 +60,8 @@
       <button id="btnConnect" onclick="toggleConnection()">CONECTAR</button>
     </section>
 
-    <!-- CARDS PRINCIPAIS -->
-
     <main>
       <section class="stats-grid">
-        <!-- UMIDADE -->
 
         <div class="stat-card">
           <h3>🌱 Umidade do Solo</h3>
@@ -83,8 +77,6 @@
           </div>
         </div>
 
-        <!-- LUZ -->
-
         <div class="stat-card">
           <h3>☀️ Luminosidade</h3>
 
@@ -99,8 +91,6 @@
           </div>
         </div>
 
-        <!-- IRRIGAÇÃO -->
-
         <div class="stat-card">
           <h3>💧 Irrigação</h3>
 
@@ -110,8 +100,6 @@
             <span id="stateLabel"> Sistema parado </span>
           </div>
 
-          <!-- Elementos mantidos para compatibilidade -->
-
           <svg width="0" height="0" style="position: absolute">
             <g id="waterDrops" opacity="0"></g>
 
@@ -119,8 +107,6 @@
           </svg>
         </div>
       </section>
-
-      <!-- CONTROLES -->
 
       <section class="control-panel">
         <button class="btn-start" onclick="sendCommand('ligar')">
@@ -131,8 +117,6 @@
           ⛔ Parar
         </button>
       </section>
-
-      <!-- HISTÓRICO -->
 
       <section class="chart-panel">
         <div class="panel-title">Histórico dos Sensores</div>
@@ -149,8 +133,6 @@
         </svg>
       </section>
 
-      <!-- LOG -->
-
       <section class="log-panel">
         <div class="log-header">
           <div class="panel-title">Log de Eventos</div>
@@ -163,8 +145,6 @@
         </div>
       </section>
     </main>
-
-    <!-- FOOTER -->
 
     <footer>
       <span> Smart Irrigate • SENAI Salto </span>

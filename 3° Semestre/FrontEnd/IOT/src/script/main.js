@@ -1,358 +1,303 @@
-// ────────────────────────────────────────────────────────────────────
-//  Configuração das notas: nome, tipo (natural/sharp), cor
-// ────────────────────────────────────────────────────────────────────
-const NOTES = [
-  { key: 1, name: "C", type: "natural", color: "#ff6b6b" },
-  { key: 2, name: "C#", type: "sharp", color: "#ff8e53" },
-  { key: 3, name: "D", type: "natural", color: "#ffd166" },
-  { key: 4, name: "D#", type: "sharp", color: "#a8e063" },
-  { key: 5, name: "E", type: "natural", color: "#43c59e" },
-  { key: 6, name: "F", type: "natural", color: "#4ecdc4" },
-  { key: 7, name: "F#", type: "sharp", color: "#45b7d1" },
-  { key: 8, name: "G", type: "natural", color: "#96e6a1" },
-  { key: 9, name: "G#", type: "sharp", color: "#74b9ff" },
-  { key: 10, name: "A", type: "natural", color: "#a29bfe" },
-  { key: 11, name: "A#", type: "sharp", color: "#fd79a8" },
-  { key: 12, name: "B", type: "natural", color: "#e17055" },
+const NOTAS = [
+  { tecla: 1, nome: "C", tipo: "natural", cor: "#ff6b6b" },
+  { tecla: 2, nome: "C#", tipo: "sharp", cor: "#ff8e53" },
+  { tecla: 3, nome: "D", tipo: "natural", cor: "#ffd166" },
+  { tecla: 4, nome: "D#", tipo: "sharp", cor: "#a8e063" },
+  { tecla: 5, nome: "E", tipo: "natural", cor: "#43c59e" },
+  { tecla: 6, nome: "F", tipo: "natural", cor: "#4ecdc4" },
+  { tecla: 7, nome: "F#", tipo: "sharp", cor: "#45b7d1" },
+  { tecla: 8, nome: "G", tipo: "natural", cor: "#96e6a1" },
+  { tecla: 9, nome: "G#", tipo: "sharp", cor: "#74b9ff" },
+  { tecla: 10, nome: "A", tipo: "natural", cor: "#a29bfe" },
+  { tecla: 11, nome: "A#", tipo: "sharp", cor: "#fd79a8" },
+  { tecla: 12, nome: "B", tipo: "natural", cor: "#e17055" },
 ];
 
-// Mapa de nome da nota → config
-const NOTE_MAP = Object.fromEntries(NOTES.map((n) => [n.name, n]));
+const MAPA_NOTAS = Object.fromEntries(NOTAS.map((n) => [n.nome, n]));
 
-// ────────────────────────────────────────────────────────────────────
-//  Estado da aplicação
-// ────────────────────────────────────────────────────────────────────
-let mqttClient = null;
-let isConnected = false;
-let pressedKeys = new Set(); // teclas atualmente pressionadas
-let totalEvents = 0;
-let totalMessages = 0;
-const MAX_LOG_ITEMS = 80;
+let clienteMqtt = null;
+let estaConectado = false;
+let teclasPressionadas = new Set();
+let totalEventos = 0;
+let totalMensagens = 0;
+const MAX_ITENS_LOG = 80;
 
-// ────────────────────────────────────────────────────────────────────
-//  Renderiza o teclado de piano
-//  Layout: C D E F G A B (naturais) + C# D# F# G# A# (sustenidos)
-// ────────────────────────────────────────────────────────────────────
-function buildPiano() {
-  const container = document.getElementById("pianoKeys");
-  container.innerHTML = "";
+function construirPiano() {
+  const recipiente = document.getElementById("pianoKeys");
+  recipiente.innerHTML = "";
 
-  // Apenas as teclas naturais definem a grade de colunas
-  const naturals = NOTES.filter((n) => n.type === "natural");
-  // Índice da tecla natural (0-based) para posicionamento dos sustenidos
-  const naturalIndex = {};
-  let ni = 0;
-  NOTES.forEach((n) => {
-    if (n.type === "natural") {
-      naturalIndex[n.name] = ni;
-      ni++;
+  const naturais = NOTAS.filter((n) => n.tipo === "natural");
+  const indiceNatural = {};
+  let inat = 0;
+  NOTAS.forEach((n) => {
+    if (n.tipo === "natural") {
+      indiceNatural[n.nome] = inat;
+      inat++;
     }
   });
 
-  // Cria teclas naturais
-  naturals.forEach((note) => {
-    const key = document.createElement("div");
-    key.className = "key-natural";
-    key.id = `key-${note.name.replace("#", "s")}`;
-    key.dataset.note = note.name;
+  naturais.forEach((nota) => {
+    const tecla = document.createElement("div");
+    tecla.className = "key-natural";
+    tecla.id = `key-${nota.nome.replace("#", "s")}`;
+    tecla.dataset.note = nota.nome;
 
-    const lbl = document.createElement("div");
-    lbl.className = "key-label";
-    lbl.textContent = note.name;
-    key.appendChild(lbl);
+    const rotulo = document.createElement("div");
+    rotulo.className = "key-label";
+    rotulo.textContent = nota.nome;
+    tecla.appendChild(rotulo);
 
-    container.appendChild(key);
+    recipiente.appendChild(tecla);
   });
 
-  // Posições dos sustenidos (como % do total de naturais)
-  // Cada sustenido fica entre dois naturais
-  // C#=entre C(0) e D(1), D#=entre D(1) e E(2), F#=entre F(3) e G(4), G#=entre G(4) e A(5), A#=entre A(5) e B(6)
-  const sharpPositions = { "C#": 0, "D#": 1, "F#": 3, "G#": 4, "A#": 5 };
-  const totalNaturals = naturals.length; // 7
+  const posicoesSustenidos = { "C#": 0, "D#": 1, "F#": 3, "G#": 4, "A#": 5 };
+  const totalNaturais = naturais.length;
 
-  NOTES.filter((n) => n.type === "sharp").forEach((note) => {
-    const leftIdx = sharpPositions[note.name];
-    // Centro do sustenido = borda direita do natural à esquerda
-    // cada natural ocupa 1/7 = 14.28% da largura
-    const leftPct = ((leftIdx + 1) / totalNaturals) * 100 - 7 / 2;
+  NOTAS.filter((n) => n.tipo === "sharp").forEach((nota) => {
+    const idxEsquerda = posicoesSustenidos[nota.nome];
+    const pctEsquerda = ((idxEsquerda + 1) / totalNaturais) * 100 - 7 / 2;
 
-    const key = document.createElement("div");
-    key.className = "key-sharp";
-    key.id = `key-${note.name.replace("#", "s")}`;
-    key.dataset.note = note.name;
-    key.style.left = `${leftPct}%`;
+    const tecla = document.createElement("div");
+    tecla.className = "key-sharp";
+    tecla.id = `key-${nota.nome.replace("#", "s")}`;
+    tecla.dataset.note = nota.nome;
+    tecla.style.left = `${pctEsquerda}%`;
 
-    const lbl = document.createElement("div");
-    lbl.className = "key-label";
-    lbl.textContent = note.name;
-    key.appendChild(lbl);
+    const rotulo = document.createElement("div");
+    rotulo.className = "key-label";
+    rotulo.textContent = nota.nome;
+    tecla.appendChild(rotulo);
 
-    container.appendChild(key);
+    recipiente.appendChild(tecla);
   });
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza a UI quando uma nota é pressionada ou solta
-// ────────────────────────────────────────────────────────────────────
-function updatePianoKey(noteName, state) {
-  const safeName = noteName.replace("#", "s");
-  const el = document.getElementById(`key-${safeName}`);
-  const noteConf = NOTE_MAP[noteName];
-  if (!el || !noteConf) return;
+function atualizarTeclaPiano(nomeNota, estado) {
+  const nomeSeguro = nomeNota.replace("#", "s");
+  const el = document.getElementById(`key-${nomeSeguro}`);
+  const confNota = MAPA_NOTAS[nomeNota];
+  if (!el || !confNota) return;
 
-  if (state === "pressed") {
-    pressedKeys.add(noteName);
+  if (estado === "pressed") {
+    teclasPressionadas.add(nomeNota);
     el.classList.add("pressed");
-    el.style.background = noteConf.color;
-    el.style.boxShadow = `0 0 16px ${noteConf.color}88`;
+    el.style.background = confNota.cor;
+    el.style.boxShadow = `0 0 16px ${confNota.cor}88`;
   } else {
-    pressedKeys.delete(noteName);
+    teclasPressionadas.delete(nomeNota);
     el.classList.remove("pressed");
-    // Restaura cor original baseado no tipo
-    el.style.background = noteConf.type === "natural" ? "#e8e8e8" : "#1a1a1a";
+    el.style.background = confNota.tipo === "natural" ? "#e8e8e8" : "#1a1a1a";
     el.style.boxShadow = "";
   }
 
-  // Atualiza contador de teclas ativas
-  document.getElementById("statActive").textContent = pressedKeys.size;
+  document.getElementById("statActive").textContent = teclasPressionadas.size;
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Atualiza o display de nota ativa (bolha + nome grande)
-// ────────────────────────────────────────────────────────────────────
-function updateActiveNoteDisplay(note, state, keyNum) {
-  const noteConf = NOTE_MAP[note];
-  const bubble = document.getElementById("noteBubble");
-  const nameLg = document.getElementById("noteNameLarge");
-  const stateLbl = document.getElementById("noteStateLbl");
-  const keyEl = document.getElementById("noteKeyNum");
+function atualizarExibicaoNotaAtiva(nota, estado, numTecla) {
+  const confNota = MAPA_NOTAS[nota];
+  const bolha = document.getElementById("noteBubble");
+  const nomeGrande = document.getElementById("noteNameLarge");
+  const rotuloEstado = document.getElementById("noteStateLbl");
+  const elTecla = document.getElementById("noteKeyNum");
 
-  if (state === "pressed") {
-    bubble.textContent = note;
-    bubble.style.background = noteConf ? noteConf.color : "#444";
-    bubble.style.color = "#000";
-    bubble.classList.add("active");
+  if (estado === "pressed") {
+    bolha.textContent = nota;
+    bolha.style.background = confNota ? confNota.cor : "#444";
+    bolha.style.color = "#000";
+    bolha.classList.add("active");
 
-    nameLg.textContent = note;
-    nameLg.style.color = noteConf ? noteConf.color : "var(--text-primary)";
-    nameLg.classList.add("active");
+    nomeGrande.textContent = nota;
+    nomeGrande.style.color = confNota ? confNota.cor : "var(--text-primary)";
+    nomeGrande.classList.add("active");
 
-    stateLbl.textContent = "▶ PRESSIONADO";
-    stateLbl.className = "note-state-label pressed";
+    rotuloEstado.textContent = "▶ PRESSIONADO";
+    rotuloEstado.className = "note-state-label pressed";
 
-    keyEl.textContent = `#${keyNum}`;
+    elTecla.textContent = `#${numTecla}`;
   } else {
-    stateLbl.textContent = "◼ SOLTO";
-    stateLbl.className = "note-state-label released";
+    rotuloEstado.textContent = "◼ SOLTO";
+    rotuloEstado.className = "note-state-label released";
 
-    // Mantém o nome mas escurece levemente
-    if (pressedKeys.size === 0) {
-      nameLg.style.color = "var(--text-dim)";
+    if (teclasPressionadas.size === 0) {
+      nomeGrande.style.color = "var(--text-dim)";
     }
   }
 
-  // Atualiza stat de última nota
-  if (state === "pressed") {
-    document.getElementById("statNote").textContent = note;
-    document.getElementById("statNoteTime").textContent = formatTime(
+  if (estado === "pressed") {
+    document.getElementById("statNote").textContent = nota;
+    document.getElementById("statNoteTime").textContent = formatarTempo(
       new Date(),
     );
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Adiciona entrada no log
-// ────────────────────────────────────────────────────────────────────
-function addLogEntry(payload) {
-  const list = document.getElementById("logList");
-  const empty = document.getElementById("logEmpty");
-  if (empty) empty.remove();
+function adicionarEntradaLog(carga) {
+  const lista = document.getElementById("logList");
+  const vazio = document.getElementById("logEmpty");
+  if (vazio) vazio.remove();
 
-  const noteConf = NOTE_MAP[payload.note];
-  const color = noteConf ? noteConf.color : "#888";
+  const confNota = MAPA_NOTAS[carga.note];
+  const cor = confNota ? confNota.cor : "#888";
 
-  const entry = document.createElement("div");
-  entry.className = "log-entry";
-  entry.innerHTML = `
-    <span class="log-time">${formatTime(new Date())}</span>
-    <span class="log-note-badge" style="background:${color}">${payload.note}</span>
-    <span class="log-state ${payload.state}">${payload.state === "pressed" ? "▶ Pressed" : "◼ Released"}</span>
-    <span class="log-key">k${payload.key}</span>
+  const entrada = document.createElement("div");
+  entrada.className = "log-entry";
+  entrada.innerHTML = `
+    <span class="log-time">${formatarTempo(new Date())}</span>
+    <span class="log-note-badge" style="background:${cor}">${carga.note}</span>
+    <span class="log-state ${carga.state}">${carga.state === "pressed" ? "▶ Pressed" : "◼ Released"}</span>
+    <span class="log-key">k${carga.key}</span>
   `;
 
-  // Insere no topo
-  list.insertBefore(entry, list.firstChild);
+  lista.insertBefore(entrada, lista.firstChild);
 
-  // Limita quantidade de entradas
-  while (list.children.length > MAX_LOG_ITEMS) {
-    list.removeChild(list.lastChild);
+  while (lista.children.length > MAX_ITENS_LOG) {
+    lista.removeChild(lista.lastChild);
   }
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Processa mensagem MQTT recebida
-// ────────────────────────────────────────────────────────────────────
-function handleMessage(topic, message) {
-  totalMessages++;
-  document.getElementById("statMessages").textContent = totalMessages;
+function tratarMensagem(topico, mensagem) {
+  totalMensagens++;
+  document.getElementById("statMessages").textContent = totalMensagens;
 
-  let payload;
+  let carga;
   try {
-    payload = JSON.parse(message.toString());
+    carga = JSON.parse(mensagem.toString());
   } catch (e) {
-    console.warn("[MQTT] Payload inválido:", message.toString());
+    console.warn("[MQTT] Payload inválido:", mensagem.toString());
     return;
   }
 
-  // Valida campos obrigatórios
-  if (!payload.note || !payload.state || !payload.key) {
-    console.warn("[MQTT] Payload incompleto:", payload);
+  if (!carga.note || !carga.state || !carga.key) {
+    console.warn("[MQTT] Payload incompleto:", carga);
     return;
   }
 
-  totalEvents++;
-  document.getElementById("statEvents").textContent = totalEvents;
+  totalEventos++;
+  document.getElementById("statEvents").textContent = totalEventos;
 
-  // Atualiza teclado visual
-  updatePianoKey(payload.note, payload.state);
+  atualizarTeclaPiano(carga.note, carga.state);
 
-  // Atualiza display de nota ativa
-  updateActiveNoteDisplay(payload.note, payload.state, payload.key);
+  atualizarExibicaoNotaAtiva(carga.note, carga.state, carga.key);
 
-  // Adiciona ao log
-  addLogEntry(payload);
+  adicionarEntradaLog(carga);
 
-  console.log(`[MQTT] ${topic} →`, payload);
+  console.log(`[MQTT] ${topico} →`, carga);
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Gerenciamento da conexão MQTT
-// ────────────────────────────────────────────────────────────────────
-function toggleConnection() {
-  if (isConnected) {
-    disconnectMqtt();
+function alternarConexao() {
+  if (estaConectado) {
+    desconectarMqtt();
   } else {
-    connectMqtt();
+    conectarMqtt();
   }
 }
 
-function connectMqtt() {
+function conectarMqtt() {
   const ip = document.getElementById("brokerIp").value.trim();
-  const port = parseInt(document.getElementById("brokerPort").value.trim());
-  const topic = document.getElementById("topicInput").value.trim();
+  const porta = parseInt(document.getElementById("brokerPort").value.trim());
+  const topico = document.getElementById("topicInput").value.trim();
 
-  if (!ip || !port || !topic) {
+  if (!ip || !porta || !topico) {
     alert("Preencha IP, Porta e Tópico antes de conectar.");
     return;
   }
 
-  const url = `ws://${ip}:${port}/mqtt`;
+  const url = `ws://${ip}:${porta}/mqtt`;
   console.log(`[MQTT] Conectando em ${url}...`);
 
-  setStatus("connecting", "CONECTANDO...");
+  definirStatus("connecting", "CONECTANDO...");
   document.getElementById("btnConnect").disabled = true;
 
-  const clientId = `dashboard_${Math.random().toString(16).slice(2, 8)}`;
+  const idCliente = `dashboard_${Math.random().toString(16).slice(2, 8)}`;
 
-  mqttClient = mqtt.connect(url, {
-    clientId,
+  clienteMqtt = mqtt.connect(url, {
+    clientId: idCliente,
     clean: true,
     connectTimeout: 5000,
-    reconnectPeriod: 3000, // reconexão automática a cada 3s
+    reconnectPeriod: 3000,
   });
 
-  mqttClient.on("connect", () => {
-    isConnected = true;
-    setStatus("connected", "CONECTADO");
+  clienteMqtt.on("connect", () => {
+    estaConectado = true;
+    definirStatus("connected", "CONECTADO");
     document.getElementById("btnConnect").textContent = "DESCONECTAR";
     document.getElementById("btnConnect").classList.add("disconnect");
     document.getElementById("btnConnect").disabled = false;
-    console.log(`[MQTT] Conectado! Assinando: ${topic}`);
-    mqttClient.subscribe(topic, { qos: 0 });
+    console.log(`[MQTT] Conectado! Assinando: ${topico}`);
+    clienteMqtt.subscribe(topico, { qos: 0 });
 
-    // Também assina tópico de status do Pico
-    const statusTopic = topic.replace("/events", "/status");
-    mqttClient.subscribe(statusTopic, { qos: 0 });
+    const topicoStatus = topico.replace("/events", "/status");
+    clienteMqtt.subscribe(topicoStatus, { qos: 0 });
   });
 
-  mqttClient.on("message", (t, msg) => handleMessage(t, msg));
+  clienteMqtt.on("message", (t, msg) => tratarMensagem(t, msg));
 
-  mqttClient.on("reconnect", () => {
-    setStatus("connecting", "RECONECTANDO...");
+  clienteMqtt.on("reconnect", () => {
+    definirStatus("connecting", "RECONECTANDO...");
   });
 
-  mqttClient.on("offline", () => {
-    isConnected = false;
-    setStatus("error", "OFFLINE");
+  clienteMqtt.on("offline", () => {
+    estaConectado = false;
+    definirStatus("error", "OFFLINE");
   });
 
-  mqttClient.on("error", (err) => {
+  clienteMqtt.on("error", (err) => {
     console.error("[MQTT] Erro:", err);
-    setStatus("error", "ERRO");
+    definirStatus("error", "ERRO");
     document.getElementById("btnConnect").disabled = false;
   });
 
-  mqttClient.on("close", () => {
-    if (isConnected) {
-      isConnected = false;
-      setStatus("error", "DESCONECTADO");
+  clienteMqtt.on("close", () => {
+    if (estaConectado) {
+      estaConectado = false;
+      definirStatus("error", "DESCONECTADO");
     }
   });
 }
 
-function disconnectMqtt() {
-  if (mqttClient) {
-    mqttClient.end(true);
-    mqttClient = null;
+function desconectarMqtt() {
+  if (clienteMqtt) {
+    clienteMqtt.end(true);
+    clienteMqtt = null;
   }
-  isConnected = false;
-  setStatus("connecting", "DESCONECTADO");
+  estaConectado = false;
+  definirStatus("connecting", "DESCONECTADO");
   const btn = document.getElementById("btnConnect");
   btn.textContent = "CONECTAR";
   btn.classList.remove("disconnect");
   btn.disabled = false;
 
-  // Libera todas as teclas pressionadas
-  pressedKeys.forEach((n) => updatePianoKey(n, "released"));
-  pressedKeys.clear();
+  teclasPressionadas.forEach((n) => atualizarTeclaPiano(n, "released"));
+  teclasPressionadas.clear();
   document.getElementById("statActive").textContent = "0";
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  UI helpers
-// ────────────────────────────────────────────────────────────────────
-function setStatus(cls, text) {
-  const badge = document.getElementById("statusBadge");
-  badge.className = `status-badge ${cls}`;
-  document.getElementById("statusText").textContent = text;
+function definirStatus(cls, texto) {
+  const indicador = document.getElementById("statusBadge");
+  indicador.className = `status-badge ${cls}`;
+  document.getElementById("statusText").textContent = texto;
 }
 
-function clearLog() {
-  const list = document.getElementById("logList");
-  list.innerHTML =
+function limparLog() {
+  const lista = document.getElementById("logList");
+  lista.innerHTML =
     '<div class="log-empty" id="logEmpty">Nenhum evento recebido</div>';
-  totalEvents = 0;
-  totalMessages = 0;
+  totalEventos = 0;
+  totalMensagens = 0;
   document.getElementById("statEvents").textContent = "0";
   document.getElementById("statMessages").textContent = "0";
 }
 
-function formatTime(d) {
+function formatarTempo(d) {
   return d.toLocaleTimeString("pt-BR", { hour12: false });
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Relógio no footer
-// ────────────────────────────────────────────────────────────────────
-function updateClock() {
+function atualizarRelogio() {
   document.getElementById("footerTime").textContent = new Date().toLocaleString(
     "pt-BR",
   );
 }
 
-// ────────────────────────────────────────────────────────────────────
-//  Init
-// ────────────────────────────────────────────────────────────────────
-buildPiano();
-updateClock();
-setInterval(updateClock, 1000);
+construirPiano();
+atualizarRelogio();
+setInterval(atualizarRelogio, 1000);
