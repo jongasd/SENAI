@@ -1,170 +1,457 @@
 <!doctype html>
-<html lang="pt-BR">
+<html class="dark" lang="pt-BR">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>SENAI MIDI Piano — Dashboard IoT</title>
 
-    <!-- MQTT.js via CDN — conecta ao broker via WebSocket (porta 8000) -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- MQTT.js via CDN — conecta ao broker via WebSocket -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.3.5/mqtt.min.js"></script>
+
+    <!-- Tokens de cor + tema Tailwind -->
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#4e3e00",
+              "on-secondary": "#00344c",
+              "tertiary-fixed": "#ffe083",
+              surface: "#131313",
+              "error-container": "#93000a",
+              "on-tertiary-fixed-variant": "#564500",
+              "on-primary-fixed-variant": "#930014",
+              "surface-container-high": "#2a2a2a",
+              "surface-variant": "#353534",
+              "primary-container": "#ff5351",
+              error: "#ffb4ab",
+              primary: "#ffb3ae",
+              "outline-variant": "#5b403e",
+              "on-error-container": "#ffdad6",
+              "inverse-on-surface": "#313030",
+              "on-surface-variant": "#e4bdba",
+              "on-error": "#690005",
+              "secondary-fixed-dim": "#84cfff",
+              secondary: "#84cfff",
+              "tertiary-fixed-dim": "#eac339",
+              "surface-container": "#201f1f",
+              "on-tertiary": "#3c2f00",
+              "secondary-container": "#009ad7",
+              "primary-fixed": "#ffdad7",
+              background: "#131313",
+              "surface-container-highest": "#353534",
+              "on-tertiary-fixed": "#231b00",
+              tertiary: "#eac339",
+              "surface-dim": "#131313",
+              "surface-bright": "#393939",
+              "surface-tint": "#ffb3ae",
+              "on-secondary-container": "#002d42",
+              "on-surface": "#e5e2e1",
+              "on-background": "#e5e2e1",
+              "inverse-primary": "#bb1522",
+              "on-secondary-fixed-variant": "#004c6c",
+              "surface-container-low": "#1c1b1b",
+              "primary-fixed-dim": "#ffb3ae",
+              outline: "#ab8886",
+              "on-secondary-fixed": "#001e2e",
+              "inverse-surface": "#e5e2e1",
+              "tertiary-container": "#cda81b",
+              "secondary-fixed": "#c7e7ff",
+              "surface-container-lowest": "#0e0e0e",
+              "on-primary-fixed": "#410004",
+              "on-primary": "#68000b",
+              "on-primary-container": "#5c0008",
+            },
+            spacing: {
+              gutter: "16px",
+              unit: "8px",
+              "margin-mobile": "20px",
+              "key-gap": "4px",
+              "margin-desktop": "40px",
+            },
+            fontFamily: {
+              "headline-lg": ["Be Vietnam Pro"],
+              "display-lg": ["Be Vietnam Pro"],
+              "label-sm": ["Space Grotesk"],
+              "body-md": ["Be Vietnam Pro"],
+            },
+          },
+        },
+      };
+    </script>
 
     <link rel="stylesheet" href="src/style/style.css" />
   </head>
-  <body>
-    <!-- ── HEADER ─────────────────────────────────────────────────────── -->
-    <header>
-      <div class="header-brand">
-        <svg
-          class="header-logo"
-          viewBox="0 0 32 32"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
+
+  <body
+    class="bg-background text-on-background min-h-screen flex overflow-hidden"
+  >
+    <!-- ════════════════════════ SIDEBAR ════════════════════════ -->
+    <aside
+      class="w-64 border-r border-white/5 bg-surface-container-lowest flex flex-col hidden md:flex"
+    >
+      <div class="p-8">
+        <h1
+          class="font-display-lg text-[26px] text-primary drop-shadow-[0_0_10px_rgba(255,179,174,0.4)] flex items-center gap-3"
         >
-          <rect width="32" height="32" rx="6" fill="#1c1c27" />
-          <!-- Piano keys icon -->
-          <rect x="5" y="8" width="4" height="16" rx="1" fill="#e8e8f0" />
-          <rect x="10" y="8" width="4" height="16" rx="1" fill="#e8e8f0" />
-          <rect x="15" y="8" width="4" height="16" rx="1" fill="#e8e8f0" />
-          <rect x="20" y="8" width="4" height="16" rx="1" fill="#e8e8f0" />
-          <rect x="7.5" y="8" width="3" height="10" rx="1" fill="#1a1a1a" />
-          <rect x="12.5" y="8" width="3" height="10" rx="1" fill="#1a1a1a" />
-          <rect x="17.5" y="8" width="3" height="10" rx="1" fill="#00e5a0" />
-        </svg>
-        <div>
-          <div class="header-title">SENAI MIDI PIANO</div>
-          <div class="header-subtitle">
-            Ítalo Bologna · Desenvolvimento de Sistemas
-          </div>
-        </div>
-      </div>
-
-      <div class="status-badge connecting" id="statusBadge">
-        <div class="status-dot"></div>
-        <span id="statusText">DESCONECTADO</span>
-      </div>
-    </header>
-    <!-- ── MAIN ───────────────────────────────────────────────────────── -->
-    <main>
-      <!-- Connect form -->
-      <div class="connect-panel">
-        <div class="field-group">
-          <label>Broker IP</label>
-          <input
-            type="text"
-            id="brokerIp"
-            value="192.168.1.XXX"
-            placeholder="192.168.1.100"
-          />
-        </div>
-        <div class="field-group">
-          <label>Porta WS</label>
-          <input type="text" id="brokerPort" value="8000" class="narrow" />
-        </div>
-        <div class="field-group">
-          <label>Tópico</label>
-          <input
-            type="text"
-            id="topicInput"
-            value="senai/grupo1/piano/events"
-          />
-        </div>
-        <button
-          class="btn-connect"
-          id="btnConnect"
-          onclick="toggleConnection()"
+          <span class="material-symbols-outlined text-4xl">piano</span>
+          MIDI Piano
+        </h1>
+        <p
+          class="font-label-sm text-[10px] text-on-surface-variant/60 uppercase tracking-widest mt-2 pl-1"
         >
-          CONECTAR
-        </button>
+          SENAI Ítalo Bologna
+        </p>
       </div>
 
-      <!-- Stats row -->
-      <div class="stats-row">
-        <div class="stat-card">
-          <div class="stat-label">Última nota</div>
-          <div class="stat-value accent-green" id="statNote">—</div>
-          <div class="stat-sub" id="statNoteTime">aguardando...</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Total de eventos</div>
-          <div class="stat-value" id="statEvents">0</div>
-          <div class="stat-sub">nesta sessão</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Mensagens recebidas</div>
-          <div class="stat-value" id="statMessages">0</div>
-          <div class="stat-sub">via MQTT</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Teclas ativas</div>
-          <div class="stat-value accent-amber" id="statActive">0</div>
-          <div class="stat-sub">pressionadas agora</div>
-        </div>
+      <nav class="flex-1 px-4 space-y-2 mt-2">
+        <a
+          class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 text-secondary-container bg-secondary-container/10 border border-secondary-container/20 group"
+          href="#"
+        >
+          <span
+            class="material-symbols-outlined text-2xl"
+            style="font-variation-settings: &quot;FILL&quot; 1"
+            >dashboard</span
+          >
+          <span class="font-headline-lg text-lg">Monitor</span>
+        </a>
+        <a
+          class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 text-on-surface-variant/70 hover:bg-surface-variant/30 hover:text-on-surface group"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-2xl">history</span>
+          <span class="font-headline-lg text-lg">Histórico</span>
+        </a>
+        <a
+          class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 text-on-surface-variant/70 hover:bg-surface-variant/30 hover:text-on-surface group"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-2xl">memory</span>
+          <span class="font-headline-lg text-lg">Dispositivo</span>
+        </a>
+        <a
+          class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 text-on-surface-variant/70 hover:bg-surface-variant/30 hover:text-on-surface group"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-2xl">school</span>
+          <span class="font-headline-lg text-lg">Sobre o Projeto</span>
+        </a>
+      </nav>
+
+      <div class="p-6">
+        <a
+          class="flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 text-on-surface-variant/70 hover:bg-surface-variant/30 hover:text-on-surface group"
+          href="#"
+        >
+          <span class="material-symbols-outlined text-2xl">settings</span>
+          <span class="font-headline-lg text-lg">Configurações</span>
+        </a>
       </div>
+    </aside>
 
-      <!-- Bottom: Piano + Log -->
-      <div class="bottom-grid">
-        <!-- Piano panel -->
-        <div class="piano-panel">
-          <div class="panel-heading">Teclado Visual</div>
+    <!-- ════════════════════════ MAIN ════════════════════════ -->
+    <main class="flex-1 overflow-y-auto relative pb-20">
+      <!-- ── Top App Bar ── -->
+      <header
+        class="sticky top-0 z-40 bg-surface/80 backdrop-blur-xl border-b border-white/10 px-margin-desktop h-20 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-6">
+          <h2 class="font-headline-lg text-headline-lg text-on-surface">
+            Console MQTT
+          </h2>
 
-          <!-- Active note display -->
-          <div class="active-note-display">
-            <div class="note-bubble" id="noteBubble">—</div>
-            <div class="note-info-block">
-              <div class="note-name-large" id="noteNameLarge">—</div>
-              <div class="note-state-label" id="noteStateLbl">
-                Aguardando evento MQTT...
-              </div>
-            </div>
-            <div style="text-align: right">
-              <div
-                style="
-                  font-size: 11px;
-                  color: var(--text-dim);
-                  font-family: var(--font-display);
-                "
+          <div
+            class="flex items-center gap-4 px-4 py-1.5 rounded-full bg-surface-variant/30 border border-white/5"
+          >
+            <div class="flex items-center gap-2">
+              <span
+                class="material-symbols-outlined text-secondary text-lg"
+                id="connIcon"
+                >wifi_off</span
               >
-                KEY
-              </div>
-              <div
-                style="
-                  font-family: var(--font-display);
-                  font-size: 28px;
-                  color: var(--text-secondary);
-                "
-                id="noteKeyNum"
+              <span
+                class="font-label-sm text-label-sm text-on-surface/80"
+                id="statusText"
+                >Desconectado</span
               >
-                —
-              </div>
             </div>
-          </div>
-
-          <!-- Piano keyboard -->
-          <div class="piano-wrapper">
-            <div class="piano-keys" id="pianoKeys">
-              <!-- Gerado por JS -->
+            <div class="w-px h-4 bg-white/10"></div>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-lg"
+                >bolt</span
+              >
+              <span
+                class="font-label-sm text-label-sm text-on-surface/80"
+                id="statMessagesTop"
+                >0 msgs</span
+              >
             </div>
           </div>
         </div>
 
-        <!-- Log panel -->
-        <div class="log-panel">
-          <div class="log-header">
-            <div class="panel-heading">Log de Eventos</div>
-            <button class="btn-clear" onclick="clearLog()">Limpar</button>
+        <div class="flex items-center gap-4">
+          <button
+            class="w-10 h-10 rounded-full glass-panel flex items-center justify-center hover:bg-surface-variant/50 transition-colors"
+            title="Limpar log"
+            onclick="clearLog()"
+          >
+            <span class="material-symbols-outlined">delete_sweep</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="p-margin-desktop space-y-gutter max-w-[1400px] mx-auto">
+        <!-- ── Connection panel ── -->
+        <section
+          class="glass-panel rounded-3xl p-6 flex flex-wrap items-end gap-4"
+        >
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant/60"
+              >Broker IP</label
+            >
+            <input
+              id="brokerIp"
+              type="text"
+              value="10.132.106.3"
+              class="bg-surface-container-high border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-on-surface w-48 outline-none focus:border-secondary transition-colors"
+            />
           </div>
-          <div class="log-list" id="logList">
-            <div class="log-empty" id="logEmpty">Nenhum evento recebido</div>
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant/60"
+              >Porta WS</label
+            >
+            <input
+              id="brokerPort"
+              type="text"
+              value="8000"
+              class="bg-surface-container-high border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-on-surface w-24 outline-none focus:border-secondary transition-colors"
+            />
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label
+              class="font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant/60"
+              >Tópico</label
+            >
+            <input
+              id="topicInput"
+              type="text"
+              value="senai/grupo1/piano/events"
+              class="bg-surface-container-high border border-white/10 rounded-xl px-3 py-2 text-sm font-mono text-on-surface w-64 outline-none focus:border-secondary transition-colors"
+            />
+          </div>
+          <button
+            id="btnConnect"
+            onclick="toggleConnection()"
+            class="px-6 py-2.5 rounded-xl bg-primary text-on-primary font-bold text-sm transition-all hover:brightness-110 active:scale-95 shadow-[0_8px_24px_rgba(255,179,174,0.25)]"
+          >
+            Conectar
+          </button>
+        </section>
+
+        <!-- ── Live Visualizer (Piano) ── -->
+        <section
+          class="glass-panel rounded-3xl p-8 overflow-hidden relative group"
+        >
+          <div class="flex items-center justify-between mb-8">
+            <h3 class="font-headline-lg text-2xl">Teclado em Tempo Real</h3>
+            <div class="flex gap-2">
+              <span
+                id="activeBadge"
+                class="px-3 py-1 rounded-full bg-tertiary/20 text-tertiary font-label-sm text-[10px] border border-tertiary/30 uppercase tracking-widest"
+              >
+                Aguardando entrada
+              </span>
+            </div>
+          </div>
+
+          <!-- 12 teclas reais, mapeadas 1:1 com BUTTON_MAP do Pico -->
+          <div
+            class="flex gap-key-gap h-64 items-end justify-center perspective-[1000px]"
+            id="pianoKeys"
+          >
+            <!-- gerado via JS a partir de NOTES -->
+          </div>
+
+          <div
+            class="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"
+          ></div>
+        </section>
+
+        <!-- ── Control Grid ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+          <!-- Left: Active note + stats -->
+          <div class="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            <!-- Active note card -->
+            <div class="glass-panel rounded-3xl p-6 flex flex-col gap-4">
+              <div class="flex items-center justify-between">
+                <span
+                  class="font-label-sm text-secondary uppercase tracking-widest text-[10px]"
+                  >Última Nota</span
+                >
+                <span class="material-symbols-outlined text-on-surface-variant"
+                  >graphic_eq</span
+                >
+              </div>
+              <h4 class="font-headline-lg text-xl mb-2">Nota Ativa</h4>
+
+              <div class="flex items-center gap-4">
+                <div
+                  id="noteBubble"
+                  class="w-16 h-16 rounded-2xl flex items-center justify-center font-display-lg text-2xl font-bold bg-surface-variant/30 border border-white/10 transition-all"
+                >
+                  —
+                </div>
+                <div class="flex-1">
+                  <div
+                    id="noteNameLarge"
+                    class="text-3xl font-display-lg text-on-surface-variant/40 transition-colors"
+                  >
+                    —
+                  </div>
+                  <div
+                    id="noteStateLbl"
+                    class="font-label-sm text-xs text-on-surface-variant/50 mt-1"
+                  >
+                    Aguardando evento MQTT...
+                  </div>
+                </div>
+                <div class="text-right">
+                  <div
+                    class="font-label-sm text-[10px] text-on-surface-variant/40 uppercase"
+                  >
+                    Key
+                  </div>
+                  <div
+                    id="noteKeyNum"
+                    class="font-display-lg text-2xl text-on-surface-variant/60"
+                  >
+                    —
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Stats card -->
+            <div class="flex flex-col gap-gutter">
+              <div
+                class="glass-panel rounded-3xl p-6 flex-1 flex flex-col justify-between"
+              >
+                <div class="flex items-center justify-between">
+                  <h4 class="font-headline-lg text-xl">Eventos da Sessão</h4>
+                  <span class="material-symbols-outlined text-secondary"
+                    >query_stats</span
+                  >
+                </div>
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <div id="statEvents" class="text-4xl font-display-lg">
+                      0
+                    </div>
+                    <span
+                      class="font-label-sm text-on-surface-variant/50 uppercase tracking-widest text-[10px]"
+                      >Total de notas</span
+                    >
+                  </div>
+                  <div>
+                    <div
+                      id="statActive"
+                      class="text-4xl font-display-lg text-tertiary"
+                    >
+                      0
+                    </div>
+                    <span
+                      class="font-label-sm text-on-surface-variant/50 uppercase tracking-widest text-[10px]"
+                      >Teclas ativas</span
+                    >
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="glass-panel rounded-3xl p-6 flex-1 flex flex-col justify-between"
+              >
+                <div class="flex items-center justify-between">
+                  <h4 class="font-headline-lg text-xl">Mensagens MQTT</h4>
+                  <span class="material-symbols-outlined text-tertiary"
+                    >cloud_sync</span
+                  >
+                </div>
+                <div class="flex items-center justify-between mt-4 px-2">
+                  <div class="text-center">
+                    <span
+                      id="statMessages"
+                      class="text-4xl font-display-lg block"
+                      >0</span
+                    >
+                    <span
+                      class="font-label-sm text-on-surface-variant/60 uppercase tracking-widest text-[10px]"
+                      >Recebidas</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Event log -->
+          <div class="lg:col-span-4 flex flex-col gap-gutter">
+            <div
+              class="bg-primary-container/10 border border-primary/20 rounded-3xl p-8 relative overflow-hidden"
+            >
+              <div class="relative z-10 flex flex-col h-full">
+                <div class="flex justify-between items-start mb-6">
+                  <div>
+                    <span
+                      class="font-label-sm text-primary uppercase tracking-[0.2em] text-[10px]"
+                      >Live Feed</span
+                    >
+                    <h4
+                      class="font-headline-lg text-2xl text-on-primary-container"
+                    >
+                      Log de Eventos
+                    </h4>
+                  </div>
+                  <div
+                    id="liveDot"
+                    class="w-3 h-3 rounded-full bg-error opacity-0 shadow-[0_0_12px_#ff5351]"
+                  ></div>
+                </div>
+
+                <div
+                  class="flex-1 overflow-y-auto max-h-[340px] pr-2 space-y-2"
+                  id="logList"
+                >
+                  <div
+                    class="text-center py-10 text-on-surface-variant/40 font-label-sm text-sm"
+                    id="logEmpty"
+                  >
+                    Nenhum evento recebido
+                  </div>
+                </div>
+              </div>
+              <div
+                class="absolute -bottom-20 -right-20 w-64 h-64 bg-primary/10 rounded-full blur-[80px]"
+              ></div>
+            </div>
           </div>
         </div>
       </div>
     </main>
-    <!-- ── FOOTER ─────────────────────────────────────────────────────── -->
-    <footer>
-      <span>SENAI Ítalo Bologna · Aula 10 · MQTT + Dashboard IoT</span>
-      <span id="footerTime"></span>
-    </footer>
-    <!-- ── SCRIPT ─────────────────────────────────────────────────────── -->
+
     <script src="src/script/main.js"></script>
   </body>
 </html>

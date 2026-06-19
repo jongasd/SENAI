@@ -1,303 +1,401 @@
-const NOTAS = [
-  { tecla: 1, nome: "C", tipo: "natural", cor: "#ff6b6b" },
-  { tecla: 2, nome: "C#", tipo: "sharp", cor: "#ff8e53" },
-  { tecla: 3, nome: "D", tipo: "natural", cor: "#ffd166" },
-  { tecla: 4, nome: "D#", tipo: "sharp", cor: "#a8e063" },
-  { tecla: 5, nome: "E", tipo: "natural", cor: "#43c59e" },
-  { tecla: 6, nome: "F", tipo: "natural", cor: "#4ecdc4" },
-  { tecla: 7, nome: "F#", tipo: "sharp", cor: "#45b7d1" },
-  { tecla: 8, nome: "G", tipo: "natural", cor: "#96e6a1" },
-  { tecla: 9, nome: "G#", tipo: "sharp", cor: "#74b9ff" },
-  { tecla: 10, nome: "A", tipo: "natural", cor: "#a29bfe" },
-  { tecla: 11, nome: "A#", tipo: "sharp", cor: "#fd79a8" },
-  { tecla: 12, nome: "B", tipo: "natural", cor: "#e17055" },
+// ════════════════════════════════════════════════════════════════
+//  SENAI MIDI Piano — Dashboard IoT (tema Material You Dark)
+//  Conecta ao broker Mosquitto via MQTT.js (WebSocket)
+//  Tópico esperado: senai/grupo1/piano/events
+//  Payload:
+//  { "note": "C", "key": 1, "state": "pressed", "timestamp": 1718745600 }
+// ════════════════════════════════════════════════════════════════
+
+// ────────────────────────────────────────────────────────────────────
+//  Configuração das notas: nome, tipo (natural/sharp), cor
+// ────────────────────────────────────────────────────────────────────
+const NOTES = [
+  { key: 1, name: "C", type: "natural", color: "#ff5351" },
+  { key: 2, name: "C#", type: "sharp", color: "#ffa726" },
+  { key: 3, name: "D", type: "natural", color: "#fdd835" },
+  { key: 4, name: "D#", type: "sharp", color: "#4caf50" },
+  { key: 5, name: "E", type: "natural", color: "#00bcd4" },
+  { key: 6, name: "F", type: "natural", color: "#2196f3" },
+  { key: 7, name: "F#", type: "sharp", color: "#673ab7" },
+  { key: 8, name: "G", type: "natural", color: "#e91e63" },
+  { key: 9, name: "G#", type: "sharp", color: "#84cfff" },
+  { key: 10, name: "A", type: "natural", color: "#eac339" },
+  { key: 11, name: "A#", type: "sharp", color: "#ffb3ae" },
+  { key: 12, name: "B", type: "natural", color: "#009ad7" },
 ];
 
-const MAPA_NOTAS = Object.fromEntries(NOTAS.map((n) => [n.nome, n]));
+const NOTE_MAP = Object.fromEntries(NOTES.map((n) => [n.name, n]));
 
-let clienteMqtt = null;
-let estaConectado = false;
-let teclasPressionadas = new Set();
-let totalEventos = 0;
-let totalMensagens = 0;
-const MAX_ITENS_LOG = 80;
+// ────────────────────────────────────────────────────────────────────
+//  Estado da aplicação
+// ────────────────────────────────────────────────────────────────────
+let mqttClient = null;
+let isConnected = false;
+let pressedKeys = new Set();
+let totalEvents = 0;
+let totalMessages = 0;
+const MAX_LOG_ITEMS = 60;
 
-function construirPiano() {
-  const recipiente = document.getElementById("pianoKeys");
-  recipiente.innerHTML = "";
+// ────────────────────────────────────────────────────────────────────
+//  Renderiza o teclado — 7 naturais ocupando a largura + 5 sustenidos
+//  flutuando sobre as junções, igual a um piano real
+// ────────────────────────────────────────────────────────────────────
+function buildPiano() {
+  const container = document.getElementById("pianoKeys");
+  container.innerHTML = "";
+  container.style.position = "relative";
 
-  const naturais = NOTAS.filter((n) => n.tipo === "natural");
-  const indiceNatural = {};
-  let inat = 0;
-  NOTAS.forEach((n) => {
-    if (n.tipo === "natural") {
-      indiceNatural[n.nome] = inat;
-      inat++;
-    }
+  const naturals = NOTES.filter((n) => n.type === "natural");
+  const totalNaturals = naturals.length; // 7
+
+  naturals.forEach((note) => {
+    const key = document.createElement("div");
+    key.className = "piano-key-glow key-natural";
+    key.id = `key-${note.name.replace("#", "s")}`;
+    key.dataset.note = note.name;
+    key.dataset.color = note.color;
+
+    const lbl = document.createElement("div");
+    lbl.className = "key-label";
+    lbl.textContent = note.name;
+    key.appendChild(lbl);
+
+    container.appendChild(key);
   });
 
-  naturais.forEach((nota) => {
-    const tecla = document.createElement("div");
-    tecla.className = "key-natural";
-    tecla.id = `key-${nota.nome.replace("#", "s")}`;
-    tecla.dataset.note = nota.nome;
+  // Posição de cada sustenido = entre dois naturais específicos
+  const sharpPositions = { "C#": 0, "D#": 1, "F#": 3, "G#": 4, "A#": 5 };
 
-    const rotulo = document.createElement("div");
-    rotulo.className = "key-label";
-    rotulo.textContent = nota.nome;
-    tecla.appendChild(rotulo);
+  NOTES.filter((n) => n.type === "sharp").forEach((note) => {
+    const leftIdx = sharpPositions[note.name];
+    const leftPct = ((leftIdx + 1) / totalNaturals) * 100 - 7 / 2;
 
-    recipiente.appendChild(tecla);
-  });
+    const key = document.createElement("div");
+    key.className = "piano-key-glow key-sharp";
+    key.id = `key-${note.name.replace("#", "s")}`;
+    key.dataset.note = note.name;
+    key.dataset.color = note.color;
+    key.style.left = `${leftPct}%`;
 
-  const posicoesSustenidos = { "C#": 0, "D#": 1, "F#": 3, "G#": 4, "A#": 5 };
-  const totalNaturais = naturais.length;
+    const lbl = document.createElement("div");
+    lbl.className = "key-label";
+    lbl.textContent = note.name;
+    key.appendChild(lbl);
 
-  NOTAS.filter((n) => n.tipo === "sharp").forEach((nota) => {
-    const idxEsquerda = posicoesSustenidos[nota.nome];
-    const pctEsquerda = ((idxEsquerda + 1) / totalNaturais) * 100 - 7 / 2;
-
-    const tecla = document.createElement("div");
-    tecla.className = "key-sharp";
-    tecla.id = `key-${nota.nome.replace("#", "s")}`;
-    tecla.dataset.note = nota.nome;
-    tecla.style.left = `${pctEsquerda}%`;
-
-    const rotulo = document.createElement("div");
-    rotulo.className = "key-label";
-    rotulo.textContent = nota.nome;
-    tecla.appendChild(rotulo);
-
-    recipiente.appendChild(tecla);
+    container.appendChild(key);
   });
 }
 
-function atualizarTeclaPiano(nomeNota, estado) {
-  const nomeSeguro = nomeNota.replace("#", "s");
-  const el = document.getElementById(`key-${nomeSeguro}`);
-  const confNota = MAPA_NOTAS[nomeNota];
-  if (!el || !confNota) return;
+// ────────────────────────────────────────────────────────────────────
+//  Atualiza a tecla visual quando pressionada/solta
+// ────────────────────────────────────────────────────────────────────
+function updatePianoKey(noteName, state) {
+  const safeName = noteName.replace("#", "s");
+  const el = document.getElementById(`key-${safeName}`);
+  const noteConf = NOTE_MAP[noteName];
+  if (!el || !noteConf) return;
 
-  if (estado === "pressed") {
-    teclasPressionadas.add(nomeNota);
+  if (state === "pressed") {
+    pressedKeys.add(noteName);
     el.classList.add("pressed");
-    el.style.background = confNota.cor;
-    el.style.boxShadow = `0 0 16px ${confNota.cor}88`;
+    el.style.background = noteConf.color;
+    el.style.boxShadow = `0 0 40px ${noteConf.color}88, 0 0 90px ${noteConf.color}44`;
+    spawnParticle(el, noteConf.color);
   } else {
-    teclasPressionadas.delete(nomeNota);
+    pressedKeys.delete(noteName);
     el.classList.remove("pressed");
-    el.style.background = confNota.tipo === "natural" ? "#e8e8e8" : "#1a1a1a";
+    el.style.background = "";
     el.style.boxShadow = "";
   }
 
-  document.getElementById("statActive").textContent = teclasPressionadas.size;
+  document.getElementById("statActive").textContent = pressedKeys.size;
 }
 
-function atualizarExibicaoNotaAtiva(nota, estado, numTecla) {
-  const confNota = MAPA_NOTAS[nota];
-  const bolha = document.getElementById("noteBubble");
-  const nomeGrande = document.getElementById("noteNameLarge");
-  const rotuloEstado = document.getElementById("noteStateLbl");
-  const elTecla = document.getElementById("noteKeyNum");
+// ────────────────────────────────────────────────────────────────────
+//  Partícula flutuante decorativa ao pressionar uma tecla
+// ────────────────────────────────────────────────────────────────────
+function spawnParticle(element, color) {
+  const particle = document.createElement("div");
+  particle.className =
+    "fixed rounded-full pointer-events-none transition-all duration-1000 z-50";
+  const rect = element.getBoundingClientRect();
+  particle.style.width = "16px";
+  particle.style.height = "16px";
+  particle.style.left = `${rect.left + rect.width / 2 - 8}px`;
+  particle.style.top = `${rect.top}px`;
+  particle.style.backgroundColor = color;
+  particle.style.boxShadow = `0 0 16px ${color}`;
 
-  if (estado === "pressed") {
-    bolha.textContent = nota;
-    bolha.style.background = confNota ? confNota.cor : "#444";
-    bolha.style.color = "#000";
-    bolha.classList.add("active");
+  document.body.appendChild(particle);
 
-    nomeGrande.textContent = nota;
-    nomeGrande.style.color = confNota ? confNota.cor : "var(--text-primary)";
-    nomeGrande.classList.add("active");
+  requestAnimationFrame(() => {
+    particle.style.transform = "translateY(-160px) scale(0)";
+    particle.style.opacity = "0";
+  });
 
-    rotuloEstado.textContent = "▶ PRESSIONADO";
-    rotuloEstado.className = "note-state-label pressed";
+  setTimeout(() => particle.remove(), 1000);
+}
 
-    elTecla.textContent = `#${numTecla}`;
+// ────────────────────────────────────────────────────────────────────
+//  Atualiza o card de "Nota Ativa"
+// ────────────────────────────────────────────────────────────────────
+function updateActiveNoteDisplay(note, state, keyNum) {
+  const noteConf = NOTE_MAP[note];
+  const bubble = document.getElementById("noteBubble");
+  const nameLg = document.getElementById("noteNameLarge");
+  const stateLbl = document.getElementById("noteStateLbl");
+  const keyEl = document.getElementById("noteKeyNum");
+  const badge = document.getElementById("activeBadge");
+
+  if (state === "pressed") {
+    bubble.textContent = note;
+    bubble.style.background = noteConf ? noteConf.color : "#353534";
+    bubble.style.color = "#131313";
+    bubble.style.borderColor = "transparent";
+
+    nameLg.textContent = note;
+    nameLg.style.color = noteConf ? noteConf.color : "#e5e2e1";
+
+    stateLbl.textContent = "▶ Pressionado";
+    stateLbl.style.color = "#84cfff";
+
+    keyEl.textContent = `#${keyNum}`;
+
+    badge.textContent = "Recebendo entrada";
+    badge.classList.remove(
+      "bg-tertiary/20",
+      "text-tertiary",
+      "border-tertiary/30",
+    );
+    badge.classList.add(
+      "bg-secondary-container/20",
+      "text-secondary",
+      "border-secondary/30",
+    );
   } else {
-    rotuloEstado.textContent = "◼ SOLTO";
-    rotuloEstado.className = "note-state-label released";
+    stateLbl.textContent = "◼ Solto";
+    stateLbl.style.color = "#eac339";
 
-    if (teclasPressionadas.size === 0) {
-      nomeGrande.style.color = "var(--text-dim)";
+    if (pressedKeys.size === 0) {
+      badge.textContent = "Aguardando entrada";
+      badge.classList.remove(
+        "bg-secondary-container/20",
+        "text-secondary",
+        "border-secondary/30",
+      );
+      badge.classList.add(
+        "bg-tertiary/20",
+        "text-tertiary",
+        "border-tertiary/30",
+      );
     }
   }
-
-  if (estado === "pressed") {
-    document.getElementById("statNote").textContent = nota;
-    document.getElementById("statNoteTime").textContent = formatarTempo(
-      new Date(),
-    );
-  }
 }
 
-function adicionarEntradaLog(carga) {
-  const lista = document.getElementById("logList");
-  const vazio = document.getElementById("logEmpty");
-  if (vazio) vazio.remove();
+// ────────────────────────────────────────────────────────────────────
+//  Adiciona entrada no log de eventos (estilo "session card")
+// ────────────────────────────────────────────────────────────────────
+function addLogEntry(payload) {
+  const list = document.getElementById("logList");
+  const empty = document.getElementById("logEmpty");
+  if (empty) empty.remove();
 
-  const confNota = MAPA_NOTAS[carga.note];
-  const cor = confNota ? confNota.cor : "#888";
+  const noteConf = NOTE_MAP[payload.note];
+  const color = noteConf ? noteConf.color : "#888";
+  const stateClass = payload.state === "pressed" ? "pressed" : "released";
+  const stateText = payload.state === "pressed" ? "▶ Pressed" : "◼ Released";
 
-  const entrada = document.createElement("div");
-  entrada.className = "log-entry";
-  entrada.innerHTML = `
-    <span class="log-time">${formatarTempo(new Date())}</span>
-    <span class="log-note-badge" style="background:${cor}">${carga.note}</span>
-    <span class="log-state ${carga.state}">${carga.state === "pressed" ? "▶ Pressed" : "◼ Released"}</span>
-    <span class="log-key">k${carga.key}</span>
+  const entry = document.createElement("div");
+  entry.className = "log-entry";
+  entry.innerHTML = `
+    <div class="log-note-chip" style="background:${color}">${payload.note}</div>
+    <div class="log-entry-text">
+      <p class="log-entry-state ${stateClass}">${stateText}</p>
+      <p class="log-entry-meta">Tecla ${payload.key} · ${formatTime(new Date())}</p>
+    </div>
   `;
 
-  lista.insertBefore(entrada, lista.firstChild);
+  list.insertBefore(entry, list.firstChild);
 
-  while (lista.children.length > MAX_ITENS_LOG) {
-    lista.removeChild(lista.lastChild);
+  while (list.children.length > MAX_LOG_ITEMS) {
+    list.removeChild(list.lastChild);
   }
+
+  // Pulso visual no indicador "live"
+  const dot = document.getElementById("liveDot");
+  dot.classList.add("active");
+  clearTimeout(window._liveDotTimeout);
+  window._liveDotTimeout = setTimeout(
+    () => dot.classList.remove("active"),
+    1500,
+  );
 }
 
-function tratarMensagem(topico, mensagem) {
-  totalMensagens++;
-  document.getElementById("statMessages").textContent = totalMensagens;
+// ────────────────────────────────────────────────────────────────────
+//  Processa mensagem MQTT recebida
+// ────────────────────────────────────────────────────────────────────
+function handleMessage(topic, message) {
+  totalMessages++;
+  document.getElementById("statMessages").textContent = totalMessages;
+  document.getElementById("statMessagesTop").textContent =
+    `${totalMessages} msgs`;
 
-  let carga;
+  let payload;
   try {
-    carga = JSON.parse(mensagem.toString());
+    payload = JSON.parse(message.toString());
   } catch (e) {
-    console.warn("[MQTT] Payload inválido:", mensagem.toString());
+    console.warn("[MQTT] Payload inválido:", message.toString());
     return;
   }
 
-  if (!carga.note || !carga.state || !carga.key) {
-    console.warn("[MQTT] Payload incompleto:", carga);
+  if (!payload.note || !payload.state || !payload.key) {
+    console.warn("[MQTT] Payload incompleto:", payload);
     return;
   }
 
-  totalEventos++;
-  document.getElementById("statEvents").textContent = totalEventos;
+  totalEvents++;
+  document.getElementById("statEvents").textContent = totalEvents;
 
-  atualizarTeclaPiano(carga.note, carga.state);
+  updatePianoKey(payload.note, payload.state);
+  updateActiveNoteDisplay(payload.note, payload.state, payload.key);
+  addLogEntry(payload);
 
-  atualizarExibicaoNotaAtiva(carga.note, carga.state, carga.key);
-
-  adicionarEntradaLog(carga);
-
-  console.log(`[MQTT] ${topico} →`, carga);
+  console.log(`[MQTT] ${topic} →`, payload);
 }
 
-function alternarConexao() {
-  if (estaConectado) {
-    desconectarMqtt();
+// ────────────────────────────────────────────────────────────────────
+//  Gerenciamento da conexão MQTT
+// ────────────────────────────────────────────────────────────────────
+function toggleConnection() {
+  if (isConnected) {
+    disconnectMqtt();
   } else {
-    conectarMqtt();
+    connectMqtt();
   }
 }
 
-function conectarMqtt() {
+function connectMqtt() {
   const ip = document.getElementById("brokerIp").value.trim();
-  const porta = parseInt(document.getElementById("brokerPort").value.trim());
-  const topico = document.getElementById("topicInput").value.trim();
+  const port = parseInt(document.getElementById("brokerPort").value.trim());
+  const topic = document.getElementById("topicInput").value.trim();
 
-  if (!ip || !porta || !topico) {
+  if (!ip || !port || !topic) {
     alert("Preencha IP, Porta e Tópico antes de conectar.");
     return;
   }
 
-  const url = `ws://${ip}:${porta}/mqtt`;
+  // Sem path extra — Mosquitto aceita handshake WebSocket na raiz por padrão
+  const url = `ws://${ip}:${port}`;
   console.log(`[MQTT] Conectando em ${url}...`);
 
-  definirStatus("connecting", "CONECTANDO...");
+  setStatus("connecting", "Conectando...");
   document.getElementById("btnConnect").disabled = true;
 
-  const idCliente = `dashboard_${Math.random().toString(16).slice(2, 8)}`;
+  const clientId = `dashboard_${Math.random().toString(16).slice(2, 8)}`;
 
-  clienteMqtt = mqtt.connect(url, {
-    clientId: idCliente,
+  mqttClient = mqtt.connect(url, {
+    clientId,
     clean: true,
     connectTimeout: 5000,
     reconnectPeriod: 3000,
   });
 
-  clienteMqtt.on("connect", () => {
-    estaConectado = true;
-    definirStatus("connected", "CONECTADO");
-    document.getElementById("btnConnect").textContent = "DESCONECTAR";
-    document.getElementById("btnConnect").classList.add("disconnect");
-    document.getElementById("btnConnect").disabled = false;
-    console.log(`[MQTT] Conectado! Assinando: ${topico}`);
-    clienteMqtt.subscribe(topico, { qos: 0 });
+  mqttClient.on("connect", () => {
+    isConnected = true;
+    setStatus("connected", "Conectado");
 
-    const topicoStatus = topico.replace("/events", "/status");
-    clienteMqtt.subscribe(topicoStatus, { qos: 0 });
+    const btn = document.getElementById("btnConnect");
+    btn.textContent = "Desconectar";
+    btn.classList.add("btn-disconnect");
+    btn.disabled = false;
+
+    console.log(`[MQTT] Conectado! Assinando: ${topic}`);
+    mqttClient.subscribe(topic, { qos: 0 });
+
+    const statusTopic = topic.replace("/events", "/status");
+    mqttClient.subscribe(statusTopic, { qos: 0 });
   });
 
-  clienteMqtt.on("message", (t, msg) => tratarMensagem(t, msg));
+  mqttClient.on("message", (t, msg) => handleMessage(t, msg));
 
-  clienteMqtt.on("reconnect", () => {
-    definirStatus("connecting", "RECONECTANDO...");
+  mqttClient.on("reconnect", () => setStatus("connecting", "Reconectando..."));
+
+  mqttClient.on("offline", () => {
+    isConnected = false;
+    setStatus("error", "Offline");
   });
 
-  clienteMqtt.on("offline", () => {
-    estaConectado = false;
-    definirStatus("error", "OFFLINE");
-  });
-
-  clienteMqtt.on("error", (err) => {
+  mqttClient.on("error", (err) => {
     console.error("[MQTT] Erro:", err);
-    definirStatus("error", "ERRO");
+    setStatus("error", "Erro de conexão");
     document.getElementById("btnConnect").disabled = false;
   });
 
-  clienteMqtt.on("close", () => {
-    if (estaConectado) {
-      estaConectado = false;
-      definirStatus("error", "DESCONECTADO");
+  mqttClient.on("close", () => {
+    if (isConnected) {
+      isConnected = false;
+      setStatus("error", "Desconectado");
     }
   });
 }
 
-function desconectarMqtt() {
-  if (clienteMqtt) {
-    clienteMqtt.end(true);
-    clienteMqtt = null;
+function disconnectMqtt() {
+  if (mqttClient) {
+    mqttClient.end(true);
+    mqttClient = null;
   }
-  estaConectado = false;
-  definirStatus("connecting", "DESCONECTADO");
+  isConnected = false;
+  setStatus("connecting", "Desconectado");
+
   const btn = document.getElementById("btnConnect");
-  btn.textContent = "CONECTAR";
-  btn.classList.remove("disconnect");
+  btn.textContent = "Conectar";
+  btn.classList.remove("btn-disconnect");
   btn.disabled = false;
 
-  teclasPressionadas.forEach((n) => atualizarTeclaPiano(n, "released"));
-  teclasPressionadas.clear();
+  pressedKeys.forEach((n) => updatePianoKey(n, "released"));
+  pressedKeys.clear();
   document.getElementById("statActive").textContent = "0";
 }
 
-function definirStatus(cls, texto) {
-  const indicador = document.getElementById("statusBadge");
-  indicador.className = `status-badge ${cls}`;
-  document.getElementById("statusText").textContent = texto;
+// ────────────────────────────────────────────────────────────────────
+//  UI helpers
+// ────────────────────────────────────────────────────────────────────
+function setStatus(kind, text) {
+  const icon = document.getElementById("connIcon");
+  const txt = document.getElementById("statusText");
+
+  icon.classList.remove("connected", "error");
+  if (kind === "connected") {
+    icon.textContent = "wifi";
+    icon.classList.add("connected");
+  } else if (kind === "error") {
+    icon.textContent = "wifi_off";
+    icon.classList.add("error");
+  } else {
+    icon.textContent = "wifi_protected_setup";
+  }
+
+  txt.textContent = text;
 }
 
-function limparLog() {
-  const lista = document.getElementById("logList");
-  lista.innerHTML =
-    '<div class="log-empty" id="logEmpty">Nenhum evento recebido</div>';
-  totalEventos = 0;
-  totalMensagens = 0;
+function clearLog() {
+  const list = document.getElementById("logList");
+  list.innerHTML = `
+    <div class="text-center py-10 text-on-surface-variant/40 font-label-sm text-sm" id="logEmpty">
+      Nenhum evento recebido
+    </div>`;
+  totalEvents = 0;
+  totalMessages = 0;
   document.getElementById("statEvents").textContent = "0";
   document.getElementById("statMessages").textContent = "0";
+  document.getElementById("statMessagesTop").textContent = "0 msgs";
 }
 
-function formatarTempo(d) {
+function formatTime(d) {
   return d.toLocaleTimeString("pt-BR", { hour12: false });
 }
 
-function atualizarRelogio() {
-  document.getElementById("footerTime").textContent = new Date().toLocaleString(
-    "pt-BR",
-  );
-}
-
-construirPiano();
-atualizarRelogio();
-setInterval(atualizarRelogio, 1000);
+// ────────────────────────────────────────────────────────────────────
+//  Init
+// ────────────────────────────────────────────────────────────────────
+buildPiano();
