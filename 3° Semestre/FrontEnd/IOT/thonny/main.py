@@ -1,17 +1,30 @@
 # main.py — MIDI Keyboard IoT
 # SENAI Ítalo Bologna — Curso Técnico em Desenvolvimento de Sistemas
 #
-# Projeto: Teclado MIDI com 12 botões (1 oitava) + 7 buzzers PWM + LED RGB + MQTT
+# Projeto: Teclado MIDI com 12 botões (1 oitava) + 7 buzzers PWM + MQTT
+#
+# ── CORREÇÃO DE PWM (mantida desta versão) ────────────────────────────────────
+# Bug original: "o botão só toca uma vez por conexão". Causa raiz: no
+# RP2350 (Pico 2W), reconfigurar a frequência de um objeto PWM que já
+# está ativo (chamar pwm.freq() de novo num slice em uso) pode deixar o
+# slice de PWM em estado inconsistente. Como cada toque ficava dentro
+# de um try/except que só logava o erro e seguia, o buzzer parava de
+# responder silenciosamente após o primeiro toque.
+#
+# Correção: cada vez que uma nota é tocada, o objeto PWM correspondente
+# é DESLIGADO (deinit) e RECRIADO do zero antes de tocar a nova
+# frequência. Isso garante que o slice de PWM sempre começa de um
+# estado limpo e conhecido, eliminando o estado preso.
 #
 # Fluxo geral:
-#   Botões (GP0–GP11) → debounce → som local (PWM) + LED RGB → payload JSON → MQTT
+#   Botões (GP0–GP11) → debounce → som local (PWM) → payload JSON → MQTT
 #
 # Funcionalidades:
 #   ✓ Leitura de 12 botões com pull-up interno (ativo em LOW)
 #   ✓ Debounce por software (DEBOUNCE_MS)
 #   ✓ 7 buzzers PWM (1 por tecla branca) — sustenidos reaproveitam o buzzer da branca vizinha
 #   ✓ Roubo de buzzer: a última tecla pressionada que compartilha buzzer "ganha" o som
-#   ✓ LED RGB único, cor muda conforme a última nota tocada
+#   ✓ PWM recriado a cada toque — evita o bug de "trava depois do primeiro toque"
 #   ✓ Publicação de JSON no evento pressed / released
 #   ✓ Heartbeat de status a cada HEARTBEAT_SEC segundos
 #   ✓ Reconexão automática de Wi-Fi
@@ -30,8 +43,7 @@ from config import (
     TOPIC_EVENTS, TOPIC_STATUS,
     BUTTON_MAP, DEBOUNCE_MS,
     HEARTBEAT_SEC, MQTT_RETRY_SEC,
-    BUZZER_PINS, RGB_PINS,
-    NOTE_FREQ, NOTE_COLORS, LED_OFF,
+    BUZZER_PINS, NOTE_FREQ, BUZZER_DUTY,
     get_buzzer_key,
 )
 from WIFI_CONNECT import conectar_wifi, esta_conectado
@@ -55,15 +67,12 @@ class BotaoDebounce:
     """
 
     def __init__(self, pin_num: int, nota: str, key_num: int):
-        self.pin    = Pin(pin_num, Pin.IN, Pin.PULL_UP)
-        self.nota   = nota
-        self.key    = key_num
+        self.pin  = Pin(pin_num, Pin.IN, Pin.PULL_UP)
+        self.nota = nota
+        self.key  = key_num
 
-        # Estado anterior estável (True = solto, False = pressionado)
-        self._estado_anterior  = True
-        # Momento da última mudança de estado detectada
-        self._ultimo_tick      = 0
-        # Estado confirmado após debounce
+        self._estado_anterior   = True   # True = solto, False = pressionado
+        self._ultimo_tick       = 0
         self._estado_confirmado = True
 
     def verificar(self):
@@ -78,16 +87,13 @@ class BotaoDebounce:
         leitura_atual = self.pin.value()   # 0=pressionado, 1=solto (pull-up)
         agora         = utime.ticks_ms()
 
-        # Detecta transição de estado
         if leitura_atual != self._estado_anterior:
-            self._ultimo_tick    = agora
+            self._ultimo_tick     = agora
             self._estado_anterior = leitura_atual
 
-        # Aguarda DEBOUNCE_MS sem nova transição antes de confirmar
         if utime.ticks_diff(agora, self._ultimo_tick) >= DEBOUNCE_MS:
             if leitura_atual != self._estado_confirmado:
                 self._estado_confirmado = leitura_atual
-                # pull-up: LOW (0) = pressionado, HIGH (1) = solto
                 return "pressed" if leitura_atual == 0 else "released"
 
         return None
@@ -100,43 +106,76 @@ class BuzzerPiano:
 
     Sustenidos (teclas pretas) reaproveitam o buzzer da branca vizinha
     (get_buzzer_key). Quando duas notas que compartilham o mesmo buzzer
-    são pressionadas, a última pressionada "rouba" o buzzer da anterior
-    (a anterior é silenciada sem disparar evento de released duplicado).
+    são pressionadas, a última pressionada "rouba" o buzzer da anterior.
 
-    Isso permite tocar até 7 notas simultâneas (acorde), desde que sejam
-    de buzzers diferentes — exatamente como pedido (1 buzzer por branca).
+    ── PONTO-CHAVE DA CORREÇÃO ──
+    Em vez de manter UM objeto PWM por buzzer durante toda a execução e
+    apenas chamar .freq()/.duty_u16() repetidamente nele (o que expôs o
+    bug de slice preso no RP2350), aqui o PWM é:
+        1. Sempre desligado (deinit) antes de qualquer nova operação
+        2. Recriado do zero (Pin + PWM) toda vez que uma nota dispara
+    O custo de recriar o objeto é desprezível (microssegundos) e
+    garante que cada toque comece de um estado de hardware limpo.
     """
 
     def __init__(self):
-        self._pwms = {}        # buzzer_key -> PWM object
-        self._dono_atual = {}  # buzzer_key -> key (int) da tecla que está soando, ou None
+        # Guarda apenas o NÚMERO do pino de cada buzzer — o objeto PWM
+        # em si é criado/destruído dinamicamente em tocar()/parar()
+        self._pinos = dict(BUZZER_PINS)          # buzzer_key -> pin_num
+        self._pwm_ativo = {}                      # buzzer_key -> PWM object ou None
+        self._dono_atual = {}                     # buzzer_key -> key (int) da tecla que está soando
 
-        for buzzer_key, pin_num in BUZZER_PINS.items():
-            pwm = PWM(Pin(pin_num))
-            pwm.duty_u16(0)  # começa mudo
-            self._pwms[buzzer_key] = pwm
+        for buzzer_key in self._pinos:
+            self._pwm_ativo[buzzer_key] = None
             self._dono_atual[buzzer_key] = None
+
+    def _desligar_buzzer(self, buzzer_key: str):
+        """
+        Desliga e destrói completamente o objeto PWM de um buzzer,
+        deixando o pino limpo para a próxima operação.
+        """
+        pwm = self._pwm_ativo.get(buzzer_key)
+        if pwm is not None:
+            try:
+                pwm.duty_u16(0)
+                pwm.deinit()
+            except Exception as e:
+                print(f"[BUZZER] Aviso ao desligar {buzzer_key}: {e}")
+        self._pwm_ativo[buzzer_key] = None
 
     def tocar(self, nota: str, key: int):
         """
         Liga o buzzer correspondente à nota, na frequência certa.
-        Se o buzzer já está sendo usado por outra tecla, essa tecla
-        "rouba" o buzzer (comportamento esperado quando C e C# disputam
-        o mesmo buzzer, por exemplo).
+        Se o buzzer já está em uso por outra tecla, essa tecla "rouba"
+        o buzzer (ex: C# rouba o buzzer de C, se C estiver soando).
+
+        SEMPRE recria o objeto PWM do zero — essa é a correção do bug
+        de "só toca uma vez".
         """
         buzzer_key = get_buzzer_key(nota)
-        pwm = self._pwms.get(buzzer_key)
-        if pwm is None:
+        pin_num = self._pinos.get(buzzer_key)
+        if pin_num is None:
+            print(f"[BUZZER] Nota '{nota}' não tem buzzer mapeado.")
             return
 
         freq = NOTE_FREQ.get(nota, 440)
-        try:
-            pwm.freq(freq)
-            pwm.duty_u16(32768)  # ~50% duty cycle
-        except Exception as e:
-            print(f"[BUZZER] Erro ao tocar {nota}: {e}")
 
-        self._dono_atual[buzzer_key] = key
+        try:
+            # 1. Desliga qualquer PWM anterior nesse pino (estado limpo)
+            self._desligar_buzzer(buzzer_key)
+
+            # 2. Recria o PWM do zero e já aplica a frequência da nova nota
+            novo_pwm = PWM(Pin(pin_num))
+            novo_pwm.freq(freq)
+            novo_pwm.duty_u16(BUZZER_DUTY)
+
+            self._pwm_ativo[buzzer_key] = novo_pwm
+            self._dono_atual[buzzer_key] = key
+
+        except Exception as e:
+            print(f"[BUZZER] Erro ao tocar {nota} (key={key}): {e}")
+            self._pwm_ativo[buzzer_key] = None
+            self._dono_atual[buzzer_key] = None
 
     def parar(self, nota: str, key: int):
         """
@@ -145,84 +184,25 @@ class BuzzerPiano:
         corte o som de C, se C tiver roubado o buzzer depois.
         """
         buzzer_key = get_buzzer_key(nota)
-        pwm = self._pwms.get(buzzer_key)
-        if pwm is None:
+
+        if self._dono_atual.get(buzzer_key) != key:
+            # Esse buzzer já foi roubado por outra tecla — não interfere
             return
 
-        if self._dono_atual.get(buzzer_key) == key:
-            try:
-                pwm.duty_u16(0)
-            except Exception as e:
-                print(f"[BUZZER] Erro ao parar {nota}: {e}")
-            self._dono_atual[buzzer_key] = None
+        self._desligar_buzzer(buzzer_key)
+        self._dono_atual[buzzer_key] = None
 
     def parar_tudo(self):
-        for pwm in self._pwms.values():
-            try:
-                pwm.duty_u16(0)
-            except Exception:
-                pass
-        for k in self._dono_atual:
-            self._dono_atual[k] = None
-
-
-# ─── CLASSE: LED RGB (PWM, cor por nota) ──────────────────────────────────────
-class LedRgb:
-    """
-    LED RGB único, controlado por 3 canais PWM (R, G, B).
-    A cor exibida reflete a última nota pressionada. Quando todas as
-    notas são soltas, o LED apaga.
-    """
-
-    def __init__(self):
-        self._pwm_r = PWM(Pin(RGB_PINS["R"]))
-        self._pwm_g = PWM(Pin(RGB_PINS["G"]))
-        self._pwm_b = PWM(Pin(RGB_PINS["B"]))
-        for pwm in (self._pwm_r, self._pwm_g, self._pwm_b):
-            pwm.freq(1000)
-            pwm.duty_u16(0)
-
-        self._notas_ativas = []  # pilha de notas atualmente pressionadas
-
-    def _aplicar_cor(self, rgb):
-        r, g, b = rgb
-        # Converte 0–255 para escala de 16 bits (0–65535) do duty_u16
-        try:
-            self._pwm_r.duty_u16(int(r / 255 * 65535))
-            self._pwm_g.duty_u16(int(g / 255 * 65535))
-            self._pwm_b.duty_u16(int(b / 255 * 65535))
-        except Exception as e:
-            print(f"[RGB] Erro ao aplicar cor: {e}")
-
-    def nota_pressionada(self, nota: str):
-        if nota in self._notas_ativas:
-            self._notas_ativas.remove(nota)
-        self._notas_ativas.append(nota)  # vai para o topo da pilha
-        cor = NOTE_COLORS.get(nota, LED_OFF)
-        self._aplicar_cor(cor)
-
-    def nota_solta(self, nota: str):
-        if nota in self._notas_ativas:
-            self._notas_ativas.remove(nota)
-
-        if self._notas_ativas:
-            # Volta a mostrar a cor da nota anterior ainda pressionada
-            ultima = self._notas_ativas[-1]
-            cor = NOTE_COLORS.get(ultima, LED_OFF)
-            self._aplicar_cor(cor)
-        else:
-            self._aplicar_cor(LED_OFF)
-
-    def apagar(self):
-        self._notas_ativas = []
-        self._aplicar_cor(LED_OFF)
+        """Desliga todos os buzzers — usado no shutdown e em recuperação de erro."""
+        for buzzer_key in list(self._pwm_ativo.keys()):
+            self._desligar_buzzer(buzzer_key)
+            self._dono_atual[buzzer_key] = None
 
 
 # ─── CLASSE: CLIENTE MQTT COM RECONEXÃO ───────────────────────────────────────
 class MqttPiano:
     """
     Gerencia a conexão MQTT e a publicação de eventos do teclado.
-
     Encapsula a lógica de conexão/reconexão para manter o loop
     principal limpo e focado na leitura dos botões.
     """
@@ -232,21 +212,16 @@ class MqttPiano:
         self._conectado = False
 
     def conectar(self) -> bool:
-        """
-        Cria o cliente MQTT e conecta ao broker.
-        Retorna True se conectou com sucesso.
-        """
         try:
             self._cliente = MQTTClient(
                 client_id = CLIENT_ID,
                 server    = BROKER_IP,
                 port      = BROKER_PORT,
-                keepalive = 60          # broker aguarda até 60s sem mensagem
+                keepalive = 60
             )
             self._cliente.connect()
             self._conectado = True
 
-            # Publica mensagem de "online" no tópico de status (LWT alternativo)
             self._publicar_status("online")
             print(f"[MQTT] Conectado → {BROKER_IP}:{BROKER_PORT}")
             return True
@@ -257,15 +232,10 @@ class MqttPiano:
             return False
 
     def reconectar(self) -> bool:
-        """
-        Tenta reconectar ao broker MQTT após perda de conexão.
-        Aguarda MQTT_RETRY_SEC entre cada tentativa.
-        """
         print("[MQTT] Tentando reconectar...")
         self._conectado = False
-        led.value(0)  # LED apagado indica desconexão
+        led.value(0)
 
-        # Garante Wi-Fi antes de tentar MQTT
         if not esta_conectado():
             print("[MQTT] Wi-Fi perdido. Reconectando Wi-Fi primeiro...")
             if not conectar_wifi():
@@ -277,14 +247,8 @@ class MqttPiano:
     def publicar_evento(self, nota: str, key: int, estado: str) -> bool:
         """
         Publica um evento de tecla no tópico TOPIC_EVENTS.
-
         Payload JSON:
-        {
-            "note":      "C",
-            "key":       1,
-            "state":     "pressed",
-            "timestamp": 1712345678
-        }
+        { "note": "C", "key": 1, "state": "pressed", "timestamp": 1712345678 }
         """
         if not self._conectado:
             return False
@@ -307,10 +271,6 @@ class MqttPiano:
             return False
 
     def _publicar_status(self, estado: str):
-        """
-        Publica heartbeat no tópico de status.
-        estado: "online" ou "offline"
-        """
         payload = ujson.dumps({
             "client_id": CLIENT_ID,
             "status":    estado,
@@ -319,10 +279,9 @@ class MqttPiano:
         try:
             self._cliente.publish(TOPIC_STATUS, payload.encode())
         except:
-            pass  # Status é best-effort, não interrompe o fluxo
+            pass
 
     def heartbeat(self):
-        """Publica sinal de vida periódico."""
         self._publicar_status("online")
 
     @property
@@ -332,10 +291,6 @@ class MqttPiano:
 
 # ─── INICIALIZAÇÃO DOS BOTÕES ─────────────────────────────────────────────────
 def criar_botoes() -> list:
-    """
-    Instancia um BotaoDebounce para cada entrada em BUTTON_MAP.
-    Retorna lista ordenada por key (1–12).
-    """
     botoes = []
     for cfg in BUTTON_MAP:
         b = BotaoDebounce(cfg["pin"], cfg["note"], cfg["key"])
@@ -352,21 +307,18 @@ def main():
     print(f" Broker:  {BROKER_IP}:{BROKER_PORT}")
     print("=" * 50)
 
-    # 1. Conecta Wi-Fi (bloqueia até conseguir ou esgotar retentativas)
+    # 1. Conecta Wi-Fi
     if not conectar_wifi():
         print("[MAIN] Falha crítica de Wi-Fi. Reiniciando em 10s...")
         utime.sleep(10)
         machine.reset()
 
-    # 2. Inicializa botões, buzzers e LED RGB
+    # 2. Inicializa botões e buzzers
     botoes = criar_botoes()
     print(f"[MAIN] {len(botoes)} botões configurados.")
 
     buzzers = BuzzerPiano()
     print("[MAIN] 7 buzzers PWM inicializados.")
-
-    rgb = LedRgb()
-    print("[MAIN] LED RGB inicializado.")
 
     # 3. Inicializa MQTT
     mqtt = MqttPiano()
@@ -374,25 +326,21 @@ def main():
         print(f"[MAIN] Aguardando broker MQTT em {BROKER_IP}...")
         utime.sleep(MQTT_RETRY_SEC)
 
-    led.value(1)  # LED aceso = MQTT conectado
+    led.value(1)  # LED embutido aceso = MQTT conectado
 
     # 4. Variáveis de controle do heartbeat e Wi-Fi
-    ultimo_heartbeat   = utime.ticks_ms()
-    ultimo_check_wifi  = utime.ticks_ms()
-    WIFI_CHECK_MS      = 2000  # checa Wi-Fi a cada 2s, não toda iteração
+    ultimo_heartbeat  = utime.ticks_ms()
+    ultimo_check_wifi = utime.ticks_ms()
+    WIFI_CHECK_MS     = 2000
 
     print("[MAIN] Aguardando eventos de teclado...")
     print("-" * 50)
 
     # ─── LOOP INFINITO ────────────────────────────────────────────────────────
-    # IMPORTANTE: cada iteração roda dentro de seu próprio try/except.
-    # Isso garante que UM erro pontual (timeout de socket, GC, etc.)
-    # nunca mate o loop inteiro — ele só pula para a próxima iteração.
-    # Esse era o suspeito nº1 do bug "só toca uma vez e trava".
+    # Cada iteração roda dentro de seu próprio try/except — um erro
+    # pontual (timeout de socket, GC, etc.) nunca mata o loop inteiro.
     while True:
         try:
-            # Verifica Wi-Fi periodicamente (não a cada ciclo, para não
-            # adicionar latência perceptível ao toque das teclas)
             agora_wifi = utime.ticks_ms()
             if utime.ticks_diff(agora_wifi, ultimo_check_wifi) >= WIFI_CHECK_MS:
                 ultimo_check_wifi = agora_wifi
@@ -401,21 +349,17 @@ def main():
                     led.value(0)
                     conectar_wifi()
 
-            # Lê cada botão e reage se houve mudança de estado
             for botao in botoes:
                 evento = botao.verificar()
 
                 if evento is None:
                     continue
 
-                # ── Som local (PWM) e LED — SEMPRE executam,
-                #    independente do estado do MQTT ──
+                # ── Som local (PWM) — SEMPRE executa, mesmo sem MQTT ──
                 if evento == "pressed":
                     buzzers.tocar(botao.nota, botao.key)
-                    rgb.nota_pressionada(botao.nota)
                 else:  # "released"
                     buzzers.parar(botao.nota, botao.key)
-                    rgb.nota_solta(botao.nota)
 
                 # ── Publicação MQTT (best-effort; nunca bloqueia o som) ──
                 sucesso = mqtt.publicar_evento(botao.nota, botao.key, evento)
@@ -426,21 +370,15 @@ def main():
                         led.value(1)
                         mqtt.publicar_evento(botao.nota, botao.key, evento)
 
-            # Heartbeat a cada HEARTBEAT_SEC segundos
             agora_hb = utime.ticks_ms()
             if utime.ticks_diff(agora_hb, ultimo_heartbeat) >= HEARTBEAT_SEC * 1000:
                 mqtt.heartbeat()
                 ultimo_heartbeat = agora_hb
 
         except Exception as e:
-            # Loga e segue vivo. Sem isso, qualquer exceção aqui dentro
-            # (ex: socket timeout no publish) propagava pro try/except
-            # de fora e o programa só reagia a UM evento antes de morrer
-            # silenciosamente ou resetar de forma inconsistente.
             print(f"[LOOP] Erro recuperável: {e}")
             utime.sleep_ms(50)
 
-        # Pequena pausa para não saturar a CPU (1ms é suficiente para debounce)
         utime.sleep_ms(1)
 
 

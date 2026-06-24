@@ -33,12 +33,12 @@ def conectar_wifi(ssid: str = WIFI_SSID, senha: str = WIFI_PASS) -> bool:
         status = wlan.status()
 
         # Códigos de status do CYW43439:
-        #   1 = CYW43_LINK_JOIN    → conectando
-        #   2 = CYW43_LINK_NOIP    → associado mas sem IP ainda
-        #   3 = CYW43_LINK_UP      → conectado com IP
-        #  -1 = CYW43_LINK_FAIL    → falha de conexão
-        #  -2 = CYW43_LINK_NONET   → rede não encontrada
-        #  -3 = CYW43_LINK_BADAUTH → senha incorreta
+        #    1 = CYW43_LINK_JOIN    → conectando
+        #    2 = CYW43_LINK_NOIP    → associado mas sem IP ainda
+        #    3 = CYW43_LINK_UP      → conectado com IP
+        #   -1 = CYW43_LINK_FAIL    → falha de conexão
+        #   -2 = CYW43_LINK_NONET   → rede não encontrada
+        #   -3 = CYW43_LINK_BADAUTH → senha incorreta
         print(f"[WiFi] Aguardando... (tentativa {tentativas}/{MAX_WIFI_RETRIES}, status={status})")
 
         if tentativas >= MAX_WIFI_RETRIES:
@@ -64,4 +64,3 @@ def obter_ip() -> str:
     if wlan.isconnected():
         return wlan.ifconfig()[0]
     return ""
-

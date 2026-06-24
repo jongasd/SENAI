@@ -2,30 +2,30 @@
 # SENAI Ítalo Bologna — Curso Técnico em Desenvolvimento de Sistemas
 #
 # ⚠️ Configure antes de gravar no Pico:
-#   BROKER_IP  → IP do notebook que roda o Mosquitto (use ipconfig)
-#   CLIENT_ID  → nome único do grupo (ex: pico_grupo1)
+#   BROKER_IP  → IP do notebook/servidor que roda o Mosquitto (use ipconfig)
+#   CLIENT_ID  → nome único do grupo (ex: pico_grupo3)
 #
 # Topologia MQTT:
-#   senai/grupo1/piano/events  → Pico publica eventos de tecla
-#   senai/grupo1/piano/status  → Pico publica heartbeat de status
+#   senai/grupo3/piano/events  → Pico publica eventos de tecla
+#   senai/grupo3/piano/status  → Pico publica heartbeat de status
 
 # ── Wi-Fi ─────────────────────────────────────────────────────────────────────
 WIFI_SSID   = "WIFI_IOT"
 WIFI_PASS   = "Ac1ce2ss5@IOT"
 
 # ── MQTT Broker ───────────────────────────────────────────────────────────────
-BROKER_IP   = "10.132.112.3"        # ← IP do notebook broker (ipconfig)
-BROKER_PORT = 1883                    # TCP direto — porta para o Pico
+BROKER_IP   = "10.132.112.5"          # ← IP do notebook/servidor broker (ipconfig)
+BROKER_PORT = 1883                     # TCP direto — porta para o Pico
 
 # ── Identidade do dispositivo ─────────────────────────────────────────────────
-CLIENT_ID   = "pico_grupo1"          # ← nome único do grupo/dispositivo
+CLIENT_ID   = "pico_grupo1"           # ← nome único do grupo/dispositivo
 
 # ── Tópicos MQTT ──────────────────────────────────────────────────────────────
 TOPIC_EVENTS = "senai/grupo3/piano/events"   # Pico publica: pressed / released
 TOPIC_STATUS = "senai/grupo3/piano/status"   # Pico publica: heartbeat online/offline
 
-# ── Mapeamento GPIO → Nota Musical ────────────────────────────────────────────
-# Pinos GP seguros no Pico 2W (evita GP23/GP24/GP25 — internos do WiFi chip)
+# ── Mapeamento GPIO → Nota Musical (botões) ───────────────────────────────────
+# Pinos GP seguros no Pico 2W (evita GP23/GP24/GP25 — internos do chip Wi-Fi)
 # Botões ligados entre o pino GP e GND — usa pull-up interno (lógica invertida)
 #
 # Botão  Nota   Pino GP
@@ -63,11 +63,12 @@ HEARTBEAT_SEC    = 30     # Intervalo do heartbeat de status (segundos)
 WIFI_RETRY_SEC   = 5      # Espera entre tentativas de reconexão Wi-Fi
 MQTT_RETRY_SEC   = 3      # Espera entre tentativas de reconexão MQTT
 MAX_WIFI_RETRIES = 10     # Tentativas máximas de Wi-Fi antes de reiniciar
-# config.py — MIDI Keyboard IoT
-# SENAI Ítalo Bologna — Curso Técnico em Desenvolvimento de Sistemas
 
-# ─── BUZZERS (1 por tecla branca — 7 buzzers) ──────────────────────────────
+
+# ─── BUZZERS (1 por tecla branca — 7 buzzers) ────────────────────────────────
 # Cada tecla branca tem seu próprio buzzer dedicado.
+# Pinos confirmados pelo grupo: GP16–GP22 (não colidem com botões GP0–GP11
+# nem com os reservados do Wi-Fi GP23–GP25).
 BUZZER_PINS = {
     "C": 16,
     "D": 17,
@@ -78,12 +79,11 @@ BUZZER_PINS = {
     "B": 22,
 }
 
-# ─── SUSTENIDOS (teclas pretas) → reaproveitam o buzzer da branca vizinha ──
+# ─── SUSTENIDOS (teclas pretas) → reaproveitam o buzzer da branca vizinha ────
 # Regra: C# usa o buzzer de C, D# usa o de D, F# usa o de F,
 #        G# usa o de G, A# usa o de A.
-# (não existem D#... espera, existem D# e A#; não existem buzzers próprios
-#  para nenhum sustenido — todos reaproveitam.)
-SHARP_TO_WHITE = {
+# Nenhum sustenido tem buzzer próprio — todos reaproveitam a branca vizinha.
+SHARP_TO_BUZZER = {
     "C#": "C",
     "D#": "D",
     "F#": "F",
@@ -91,15 +91,16 @@ SHARP_TO_WHITE = {
     "A#": "A",
 }
 
+
 def get_buzzer_key(nota: str) -> str:
     """
     Retorna a 'chave de buzzer' (nome da tecla branca) que uma nota deve usar.
     Notas brancas retornam a si mesmas; sustenidos retornam a branca vizinha.
     """
-    return SHARP_TO_WHITE.get(nota, nota)
+    return SHARP_TO_BUZZER.get(nota, nota)
 
 
-# ─── FREQUÊNCIAS (oitava 4 — valores padrão em Hz) ─────────────────────────
+# ─── FREQUÊNCIAS (oitava 4 — valores padrão em Hz) ───────────────────────────
 # Sustenidos usam a frequência real deles (mais aguda que a branca do buzzer),
 # mesmo compartilhando o buzzer físico da branca vizinha.
 NOTE_FREQ = {
@@ -117,31 +118,4 @@ NOTE_FREQ = {
     "B":  494,
 }
 
-
-# ─── LED RGB (compartilhado — cor muda conforme a nota) ────────────────────
-RGB_PINS = {
-    "R": 13,
-    "G": 14,
-    "B": 15,
-}
-
-# Cor (R, G, B) de 0–255 para cada nota. Sustenidos têm uma variação mais
-# clara/saturada da cor da branca correspondente.
-NOTE_COLORS = {
-    "C":  (255, 0,   0),
-    "C#": (255, 90,  90),
-    "D":  (255, 140, 0),
-    "D#": (255, 180, 90),
-    "E":  (255, 255, 0),
-    "F":  (0,   255, 0),
-    "F#": (90,  255, 140),
-    "G":  (0,   200, 255),
-    "G#": (90,  220, 255),
-    "A":  (60,  60,  255),
-    "A#": (140, 140, 255),
-    "B":  (200, 0,   255),
-}
-
-LED_OFF = (0, 0, 0)
-
-
+BUZZER_DUTY = 32768   # ~50% duty cycle (escala 0–65535)
