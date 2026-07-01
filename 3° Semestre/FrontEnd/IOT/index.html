@@ -8,6 +8,7 @@
     <!-- MQTT.js via CDN — conecta ao broker via WebSocket (porta 8000) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.3.5/mqtt.min.js"></script>
 
+    <!-- Folha de estilos separada -->
     <link rel="stylesheet" href="src/style/style.css" />
   </head>
   <body>
@@ -43,6 +44,7 @@
         <span id="statusText">DESCONECTADO</span>
       </div>
     </header>
+
     <!-- ── MAIN ───────────────────────────────────────────────────────── -->
     <main>
       <!-- Connect form -->
@@ -52,8 +54,8 @@
           <input
             type="text"
             id="brokerIp"
-            value="192.168.1.XXX"
-            placeholder="192.168.1.100"
+            value="10.132.106.3"
+            placeholder="10.132.106.3"
           />
         </div>
         <div class="field-group">
@@ -159,12 +161,14 @@
         </div>
       </div>
     </main>
+
     <!-- ── FOOTER ─────────────────────────────────────────────────────── -->
     <footer>
       <span>SENAI Ítalo Bologna · Aula 10 · MQTT + Dashboard IoT</span>
       <span id="footerTime"></span>
     </footer>
-    <!-- ── SCRIPT ─────────────────────────────────────────────────────── -->
+
+    <!-- Lógica da aplicação separada -->
     <script src="src/script/main.js"></script>
   </body>
 </html>
