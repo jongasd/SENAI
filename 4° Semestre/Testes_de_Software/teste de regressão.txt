@@ -1,0 +1,73 @@
+teste de regressão
+
+Testar novamente funcionalidades que já funcionavam depois de uma mudança no código
+
+objetivo: garantir que uma correção ou nova feature nao quebrou algo que já estava pronto
+
+Teste de estresse
+
+testa o sistema em condições extremas, acima do limite normal de uso, para ver onde e como ele falha
+
+objetivo não é confirmar se funciona bem é descobrir o ponto limite do software
+
+Teste de performance
+
+Mede velocidade, tempo de resposta e uso de recursos (CPU, memória) do sistema sob uso normal
+
+diferente do teste de estresse: aqui o volume é realista, o foco [e a qualidade da resposta
+
+Teste de recuperação
+
+verifica se o sistema consegue voltar ao normal depois de uma falha (queda de energia, perda de conexão, crash do servidor)
+
+avalia se os dados são preservados e se o sistema retoma de forma segura.
+
+
+
+Exercício de fixação
+
+App de delivery em dia de promoção
+o app normalmente recebe 500 pedidos por hora. A empresa vai lançar uma promoção que pode multiplicar isso por 20
+
+tarefa: descreva como você montaria um teste de estresse para esse cenário e cite 2 possíveis falhas que esse teste poderia revelar.
+
+Resposta: Fazer um sistema que de acordo com o tempo passa a quantia de pedidos vai dobrando por segundo, para ver até que ponto o sistema aguenta e ver o seu limite, além disso ver se o preço do pedido vai atualizar ao mesmo tempo que a quantidade de pedidos vai subindo. Este teste pode trazer problemas como queda do sistema, sobrecarregamento de informações (o servidor não aguentar a quantia de informações).
+
+Sistema de consulta de notas online
+No inicio do semestre, cerca de 300 alunos acessam o sistema por dia para ver notas. A escola quer garantir uma boa experiência de uso.
+
+Tarefa: defina uma métrica de performance aceitável para esse sistema, e justifique por que esse limite faz sentido para o contexto.
+
+Resposta: Esse sistema deve ter em média de no máximo 5 segundos para tempo de resposta para cada acesso, pois como se tratam de diversos alunos o tempo de resposta deve ser rápido para que o sistema seja efetivo e não demore para que funcione. Uma outra solução seria a divisão de acesso ao sistema por quantidade de pessoas, fazendo com que excedendo a quantidade o sistema limite e faça em menor quantidade para reservar e mantiver o sistema intacto sem sobrecarregá-lo.
+
+Sistema de matriculas de uma escola: O time corrigiu um bug no modulo de "cancelamento de matricula"
+
+o sistema também tem os módulos de "cadastro de aluno", "emissão de boletim" e "pagamento de mensalidade" que não foram alterados
+
+Tarefa: explique por que um teste de regressão é necessário aqui, e liste 2 funcionalidades que você testaria novamente mesmo sem terem sido alteradas diretamente.
+
+Resposta: ele é necessário pois quando é corrigido um bug num modulo importante como o "cancelamento de matricula", é importante testar as outras funcionalidades que deveriam ser desativadas por falta de matrícula. Outra questão que deve ser testada é se o aluno ainda consegue ter acesso ao sistema mesmo sem a matricula, pois isso pode trazer problemas futuros por haver um sistema que você não está mais cadastrado.
+
+Sistema de pedidos de uma cantina
+Um cliente est[a finalizando um pedido pelo app quando a conexão com o servidor cai por 10 segundos
+
+Tarefa: liste 2 comportamentos esperados do sistema para ser considerado "recuperado com sucesso" e 1 comportamento que indicaria falha grave.
+
+Resposta: Testar se todos os produtos do sistema ainda estão cadastrados e com o seu devido preço, além de ver se o carrinho do cliente está ativo, e como está funcionando a conexão. O problema que se estivesse dentro do sistema e seria considerado grave seria se com a queda, o sistema perde conexão com o banco e todos os preços são zerados. 
+
+App de delivery com área de entregador
+
+O app tem uma área exclusiva para entregadores verem pedidos e ganhos separada da área do cliente comum
+
+Tarefa: liste 2 testes de segurança que você faria para garantir que um cliente comum não consiga acessar a área do entregador
+
+Resposta: Realizar a verificação de duas etapas para garantir que o entregador que esta no sistema realmente trabalha no sistema para não se confundir com outros, ou mesmo trazer um id específico e quando for trabalhar apresentar este id para definir e garantir que no sistema ele é um entregador.
+
+
+Migração do sistema de notas de uma escola
+
+A nova escola vai trocar o sistema antigo de lançamento de notas por um novo. mas antes precisa garantir que os cálculos de media estão corretos
+
+Tarefa: Descreva como aplicar teste paralelo nesse cenário e o que a equipe deve fazer se os dois sistemas apresentarem resultados diferentes.
+
+Resposta: Para aplicar o teste, coloque no sistema as notas do mesmo aluno durante um semestre completo e analise as médias finais de cada matéria e também a relação das notas e as faltas por cada matéria, e testando com o resultado esperado.
