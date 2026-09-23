@@ -1,0 +1,161 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "API Livraria",
+    "description": "Documentação automática da API Livraria utilizando Swagger Autogen",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3000",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "http",
+      "scheme": "bearer",
+      "bearerFormat": "JWT"
+    }
+  },
+  "paths": {
+    "/livros/": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Dados do novo livro",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "titulo": {
+                  "type": "string",
+                  "example": "Clean Architecture"
+                },
+                "autor": {
+                  "type": "string",
+                  "example": "Robert C. Martin"
+                },
+                "preco": {
+                  "type": "number",
+                  "example": 105.9
+                },
+                "paginas": {
+                  "type": "number",
+                  "example": 432
+                }
+              },
+              "required": [
+                "titulo",
+                "autor",
+                "preco"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/livros/{id}": {
+      "get": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Dados para atualizar o livro (envie apenas os que deseja alterar)",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "titulo": {
+                  "type": "string",
+                  "example": "Clean Architecture Atualizado"
+                },
+                "autor": {
+                  "type": "string",
+                  "example": "Robert C. Martin"
+                },
+                "preco": {
+                  "type": "number",
+                  "example": 110
+                },
+                "paginas": {
+                  "type": "number",
+                  "example": 432
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    }
+  }
+}

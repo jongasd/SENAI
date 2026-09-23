@@ -1,0 +1,16 @@
+{
+  "name": "livraria-ebooks-api",
+  "version": "1.0.0",
+  "description": "API de Livraria de E-books para exercício de Swagger",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
