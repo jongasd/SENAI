@@ -1,0 +1,278 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "API Loja de Jogos",
+    "description": "API REST para gerenciamento de um catálogo de jogos (CRUD). Documentação gerada a partir das rotas de /jogos.",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3001",
+  "basePath": "/",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "tags": [
+    {
+      "name": "Jogos",
+      "description": "Operações relacionadas ao cadastro e consulta de jogos"
+    }
+  ],
+  "paths": {
+    "/jogos": {
+      "get": {
+        "tags": ["Jogos"],
+        "summary": "Lista todos os jogos",
+        "description": "Retorna a lista completa de jogos cadastrados.",
+        "responses": {
+          "200": {
+            "description": "Lista de jogos retornada com sucesso",
+            "schema": {
+              "$ref": "#/definitions/ListaJogosResponse"
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Jogos"],
+        "summary": "Cadastra um novo jogo",
+        "description": "Cria um novo jogo no catálogo. Os campos nome, desenvolvedora e preco são obrigatórios.",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dados do novo jogo",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JogoInput"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Jogo cadastrado com sucesso",
+            "schema": {
+              "$ref": "#/definitions/JogoResponse"
+            }
+          },
+          "400": {
+            "description": "Dados obrigatórios ausentes (nome, desenvolvedora ou preco)",
+            "schema": {
+              "$ref": "#/definitions/ErroResponse"
+            }
+          }
+        }
+      }
+    },
+    "/jogos/{id}": {
+      "get": {
+        "tags": ["Jogos"],
+        "summary": "Busca um jogo por ID",
+        "description": "Retorna os dados de um jogo específico.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "ID do jogo",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jogo encontrado",
+            "schema": {
+              "$ref": "#/definitions/JogoResponse"
+            }
+          },
+          "404": {
+            "description": "Jogo não encontrado",
+            "schema": {
+              "$ref": "#/definitions/ErroResponse"
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Jogos"],
+        "summary": "Atualiza um jogo existente",
+        "description": "Atualiza total ou parcialmente os dados de um jogo. Campos não enviados no corpo permanecem inalterados; o campo id não pode ser sobrescrito.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "ID do jogo",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Dados a serem atualizados no jogo",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/JogoUpdateInput"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Jogo atualizado com sucesso",
+            "schema": {
+              "$ref": "#/definitions/JogoResponse"
+            }
+          },
+          "404": {
+            "description": "Jogo não encontrado",
+            "schema": {
+              "$ref": "#/definitions/ErroResponse"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Jogos"],
+        "summary": "Remove um jogo",
+        "description": "Exclui um jogo do catálogo pelo ID.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "description": "ID do jogo",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Jogo deletado com sucesso (sem conteúdo no corpo da resposta)"
+          },
+          "404": {
+            "description": "Jogo não encontrado",
+            "schema": {
+              "$ref": "#/definitions/ErroResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Jogo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "example": 1
+        },
+        "nome": {
+          "type": "string",
+          "example": "The Witcher 3"
+        },
+        "desenvolvedora": {
+          "type": "string",
+          "example": "CD Projekt Red"
+        },
+        "preco": {
+          "type": "number",
+          "format": "float",
+          "example": 120.50
+        },
+        "anoLancamento": {
+          "type": "integer",
+          "example": 2015
+        }
+      }
+    },
+    "JogoInput": {
+      "type": "object",
+      "required": ["nome", "desenvolvedora", "preco"],
+      "properties": {
+        "nome": {
+          "type": "string",
+          "example": "Hollow Knight"
+        },
+        "desenvolvedora": {
+          "type": "string",
+          "example": "Team Cherry"
+        },
+        "preco": {
+          "type": "number",
+          "format": "float",
+          "example": 49.90
+        },
+        "anoLancamento": {
+          "type": "integer",
+          "example": 2017
+        }
+      }
+    },
+    "JogoUpdateInput": {
+      "type": "object",
+      "description": "Todos os campos são opcionais; apenas os enviados serão atualizados. O campo id é ignorado caso enviado.",
+      "properties": {
+        "nome": {
+          "type": "string",
+          "example": "Hollow Knight: Voidheart Edition"
+        },
+        "desenvolvedora": {
+          "type": "string",
+          "example": "Team Cherry"
+        },
+        "preco": {
+          "type": "number",
+          "format": "float",
+          "example": 39.90
+        },
+        "anoLancamento": {
+          "type": "integer",
+          "example": 2018
+        }
+      }
+    },
+    "JogoResponse": {
+      "type": "object",
+      "properties": {
+        "sucesso": {
+          "type": "boolean",
+          "example": true
+        },
+        "dados": {
+          "$ref": "#/definitions/Jogo"
+        }
+      }
+    },
+    "ListaJogosResponse": {
+      "type": "object",
+      "properties": {
+        "sucesso": {
+          "type": "boolean",
+          "example": true
+        },
+        "dados": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Jogo"
+          }
+        }
+      }
+    },
+    "ErroResponse": {
+      "type": "object",
+      "properties": {
+        "sucesso": {
+          "type": "boolean",
+          "example": false
+        },
+        "mensagem": {
+          "type": "string",
+          "example": "Jogo não encontrado"
+        }
+      }
+    }
+  }
+}

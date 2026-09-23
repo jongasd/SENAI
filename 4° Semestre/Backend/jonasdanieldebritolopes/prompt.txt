@@ -1,0 +1,3 @@
+Atue como um Desenvolvedor Backend que está precisando montar uma documentação para uma API de uma loja de jogos. Sua função é analizar a API que está compactada em anexo e a partir das informações e rotas, montar um arquivo swagger_output.json inteiro. 
+
+Observações:  As configurações do swagger.js já foram realizadas, e essa biblioteca já foi instalada no projeto (essas modificações não estão presentes dentro desse projeto compactado).

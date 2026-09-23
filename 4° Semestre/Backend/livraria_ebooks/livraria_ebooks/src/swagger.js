@@ -8,19 +8,12 @@ const doc = {
     version: "1.0.0",
   },
   host: "localhost:3000",
-  schemes: ["http"],
-  securityDefinitions: {
-    bearerAuth: {
-      type: "http",
-      scheme: "bearer",
-      bearerFormat: "JWT",
-    },
-  },
+  schemes: ["http"]
 };
 
 const outputFile = "./swagger_output.json";
 const endpointsFiles = ["./routes/index.js"];
-
+  
 swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
   console.log("Documentação do Swagger gerada com sucesso!");
 });
