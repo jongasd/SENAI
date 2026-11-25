@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clínica de Fisioterapia - Planos de Tratamento</title>
+  </head>
+  <body>
+    <h1>Planos de Tratamento</h1>
+    <p><a href="/principal">Voltar</a></p>
+    <table border="1">
+      <tr>
+        <th>Paciente</th>
+        <th>Descrição</th>
+        <th>Objetivo</th>
+        <th>Qtd. Sessões</th>
+        <th>Ações</th>
+      </tr>
+      {{#planos}}
+      <tr>
+        <td>{{paciente_nome}}</td>
+        <td>{{descricao}}</td>
+        <td>{{objetivo}}</td>
+        <td>{{qtd_sessoes}}</td>
+        <td>
+          <a href="/planos?editar={{id}}">Editar</a>
+          <form method="POST" action="/planos/{{id}}">
+            <input type="hidden" name="_method" value="DELETE" />
+            <button>Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {{/planos}}
+    </table>
+
+    <h2>
+      {{#editando}}Editar{{/editando}}{{^editando}}Cadastrar{{/editando}} plano
+      de tratamento
+    </h2>
+
+    <form method="POST" action="{{acao}}">
+      {{#editando}}<input type="hidden" name="_method" value="PUT" />
+      {{/editando}}
+      <select name="paciente_id" required>
+        <option value="">Selecione o paciente...</option>
+        {{#pacientes}}
+        <option value="{{id}}" {{selecionado}}>{{nome}}</option>
+        {{/pacientes}}
+      </select>
+
+      <input
+        type="text"
+        name="descricao"
+        placeholder="Descrição do tratamento"
+        value="{{form.descricao}}"
+        required
+      />
+      <input
+        type="text"
+        name="objetivo"
+        placeholder="Objetivo"
+        value="{{form.objetivo}}"
+      />
+      <input
+        type="number"
+        name="qtd_sessoes"
+        placeholder="Qtd. de sessões"
+        value="{{form.qtd_sessoes}}"
+        min="1"
+        required
+      />
+      <button>
+        {{#editando}}Salvar{{/editando}}{{^editando}}Cadastrar{{/editando}}
+      </button>
+    </form>
+    <p>{{erro}}</p>
+  </body>
+</html>

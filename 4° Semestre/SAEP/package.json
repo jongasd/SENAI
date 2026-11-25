@@ -1,0 +1,35 @@
+{
+  "name": "clinica-fisioterapia",
+  "version": "1.0.0",
+  "description": "Sistema de gerenciamento de pacientes, planos de tratamento e sessões para Clínica de Fisioterapia.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/heloisagpaixao/saep_pratica_revisao.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/heloisagpaixao/saep_pratica_revisao/issues"
+  },
+  "homepage": "https://github.com/heloisagpaixao/saep_pratica_revisao#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "mustache": "^4.2.0",
+    "mysql2": "^3.24.6"
+  },
+  "directories": {
+    "doc": "docs"
+  }
+}

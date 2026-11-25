@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clínica de Fisioterapia - Sessões</title>
+  </head>
+  <body>
+    <h1>Sessões (Agendamentos)</h1>
+    <p><a href="/principal">Voltar</a></p>
+
+    <table border="1">
+      <tr>
+        <th>Data da Sessão</th>
+        <th>Observações</th>
+        <th>Plano de Tratamento</th>
+        <th>Objetivo do Plano</th>
+        <th>Qtd. Sessões</th>
+        <th>Paciente</th>
+        <th>CPF</th>
+        <th>Telefone</th>
+        <th>E-mail</th>
+        <th>Nascimento</th>
+        <th>Alterar Data</th>
+      </tr>
+      {{#sessoes}}
+      <tr>
+        <td>{{data_br}}</td>
+        <td>{{observacoes}}</td>
+        <td>{{plano_descricao}}</td>
+        <td>{{plano_objetivo}}</td>
+        <td>{{plano_qtd_sessoes}}</td>
+        <td>{{paciente_nome}}</td>
+        <td>{{paciente_cpf}}</td>
+        <td>{{paciente_telefone}}</td>
+        <td>{{paciente_email}}</td>
+        <td>{{paciente_data_nascimento}}</td>
+        <td>
+          <form method="POST" action="/sessoes/{{id}}">
+            <input type="hidden" name="_method" value="PUT" />
+            <input
+              type="datetime-local"
+              name="data_sessao"
+              value="{{data_input}}"
+              required
+            />
+            <button>Salvar</button>
+          </form>
+
+          <form method="POST" action="/sessoes/{{id}}">
+            <input type="hidden" name="_method" value="DELETE" />
+            <button>Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {{/sessoes}}
+    </table>
+
+    <h2>Cadastrar sessão</h2>
+    <form method="POST" action="/sessoes">
+      <select name="plano_id" required>
+        <option value="">Selecione o plano de tratamento...</option>
+        {{#planos}}
+        <option value="{{id}}">{{descricao}} ({{paciente_nome}})</option>
+        {{/planos}}
+      </select>
+
+      <input type="datetime-local" name="data_sessao" required />
+      <input
+        type="text"
+        name="observacoes"
+        placeholder="Observações da sessão"
+      />
+
+      <button>Cadastrar</button>
+    </form>
+    <p>{{erro}}</p>
+  </body>
+</html>
